@@ -149,6 +149,9 @@ const forgotPassword = async (req, res) => {
  * @param {string} month.query - month
  * @param {string} type.query - type
  * @param {string} location.query - location
+ * @param {string} Subscription.query - Subscription
+ * @param {string} free_trail.query - free_trail
+ * @param {string} Status.query - Status
  * @param {string} name.query - name
  * @return {object} 200 - Success response - application/json
  */
@@ -183,6 +186,9 @@ try {
   const pageNumberParam = req.query.pageNumber;
   const nameParam = req.query.name;
   const locationParam = req.query.location;
+  const subscriptionParam = req.query.Subscription
+  const freeTrailParam = req.query.free_trail
+  const statusParam = req.query.Status
 
   // Validate month parameter
   let month;
@@ -206,6 +212,16 @@ try {
   }
   if (typeParam) {
       filter.type = typeParam;
+  } 
+  if (subscriptionParam) {
+    //filter.Subscription = subscriptionParam;
+    filter.Subscription = { $regex: new RegExp(subscriptionParam, 'i') };
+  } 
+  if (freeTrailParam) {
+    filter.free_trail = { $regex: new RegExp(freeTrailParam, 'i') };
+  }
+  if (statusParam) {
+   filter.Status = { $regex: new RegExp(statusParam, 'i') };
   }
   if (nameParam) {
       // Use a case-insensitive regex for filtering by first_name, last_name, and their combination
@@ -265,32 +281,110 @@ try {
       customers = await Customer.find(filter);
   }
 
-  // Calculate weekly counts
-  const weeklyCounts = Array.from({ length: 4 }, (_, weekIndex) => ({
-      week: weekIndex + 1,
-      count: 0
+  // // Calculate weekly counts
+  // const weeklyCounts = Array.from({ length: 4 }, (_, weekIndex) => ({
+  //     week: weekIndex + 1,
+  //     count: 0
+  // }));
+
+  // customers.forEach(customer => {
+  //     const signupDay = parseInt(customer.signUpDate.split('/')[0]); 
+  //     const weekNumber = getWeekNumber(signupDay);
+
+  //     // Increment the count for the corresponding week
+  //     if (weekNumber >= 1 && weekNumber <= 4) {
+  //         weeklyCounts[weekNumber - 1].count += 1;
+  //     }
+  // });
+
+
+  //   const responseObj = {
+  //     totalSubscriber,
+  //     activeCustomers,
+  //     cancelledCustomers,
+  //     customers,
+  // };  
+
+  // Calculate weekly counts for app registration and activation
+  const appRegistrationWeeklyCounts = Array.from({ length: 4 }, (_, weekIndex) => ({
+    week: weekIndex + 1,
+    count: 0
+  }));
+
+  const activationWeeklyCounts = Array.from({ length: 4 }, (_, weekIndex) => ({
+    week: weekIndex + 1,
+    count: 0
+  })); 
+
+  const completedFreeTrailWeeklyCounts = Array.from({ length: 4 }, (_, weekIndex) => ({
+    week: weekIndex + 1,
+    count: 0
+  })); 
+
+  const cancelledFreeTrailWeeklyCounts = Array.from({ length: 4 }, (_, weekIndex) => ({
+    week: weekIndex + 1,
+    count: 0
+  })); 
+
+  const completedSubscriptionlWeeklyCounts = Array.from({ length: 4 }, (_, weekIndex) => ({
+    week: weekIndex + 1,
+    count: 0
+  })); 
+
+  const cancelledSubscriptionWeeklyCounts = Array.from({ length: 4 }, (_, weekIndex) => ({
+    week: weekIndex + 1,
+    count: 0
   }));
 
   customers.forEach(customer => {
-      const signupDay = parseInt(customer.signUpDate.split('/')[0]); 
-      const weekNumber = getWeekNumber(signupDay);
+    const signupDay = parseInt(customer.signUpDate.split('/')[0]);
+    const weekNumber = getWeekNumber(signupDay);
 
-      // Increment the count for the corresponding week
-      if (weekNumber >= 1 && weekNumber <= 4) {
-          weeklyCounts[weekNumber - 1].count += 1;
-      }
+    // Increment the count for the corresponding week in app registration
+    if (weekNumber >= 1 && weekNumber <= 4) {
+      appRegistrationWeeklyCounts[weekNumber - 1].count += 1;
+    }
+
+    // Increment the count for the corresponding week in activation (if customer is active)
+    if (customer.isActive && weekNumber >= 1 && weekNumber <= 4) {
+      activationWeeklyCounts[weekNumber - 1].count += 1;
+    }  
+
+    if (customer.free_trail=== "Completed" && weekNumber >= 1 && weekNumber <= 4) {
+      completedFreeTrailWeeklyCounts[weekNumber - 1].count += 1;
+    } 
+
+    if (customer.free_trail=== "Cancelled" && weekNumber >= 1 && weekNumber <= 4) {
+      cancelledFreeTrailWeeklyCounts[weekNumber - 1].count += 1;
+    }  
+
+    if (customer.Subscription=== "Active" && weekNumber >= 1 && weekNumber <= 4) {
+      completedSubscriptionlWeeklyCounts[weekNumber - 1].count += 1;
+    }  
+
+    if (customer.Subscription=== "Cancelled" && weekNumber >= 1 && weekNumber <= 4) {
+      cancelledSubscriptionWeeklyCounts[weekNumber - 1].count += 1;
+    } 
+
+
   });
 
-
-    const responseObj = {
-      totalSubscriber,
-      activeCustomers,
-      cancelledCustomers,
-      customers,
+  const responseObj = {
+    totalSubscriber,
+    activeCustomers,
+    cancelledCustomers,
+    customers,
   };
 
   if (month) {
-      responseObj.weeklyCounts = weeklyCounts;
+      responseObj.weeklyCounts = {
+       appRegistration: appRegistrationWeeklyCounts,
+        activation: activationWeeklyCounts,
+        freeTrailCompleted: completedFreeTrailWeeklyCounts,
+        freeTrailCancelled: cancelledFreeTrailWeeklyCounts,
+        subscriptionCompleted: completedSubscriptionlWeeklyCounts,
+        subscriptionCancelled: cancelledSubscriptionWeeklyCounts     
+ }  
   }
 
   return res.status(200).json(responseObj)

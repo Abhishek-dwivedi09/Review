@@ -29,6 +29,15 @@ const CustomerSchema = new mongoose.Schema({
   password: {
     type: Schema.Types.String,
   },
+  free_trail: {
+    type: Schema.Types.String,
+  },
+  Subscription: {
+    type: Schema.Types.String,
+  },
+  Status: {
+    type: Schema.Types.String,
+  },
   signUpDate: {
     type: Schema.Types.String,
   },
