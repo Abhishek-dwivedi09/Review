@@ -241,7 +241,10 @@ try {
   let totalSubscriber;
   let activeCustomers;
   let cancelledCustomers;
-  let customers;
+  let customers; 
+  let totalReviews = 0; 
+  //let  totalLocations = 0;  
+  let uniqueCitySet =  new Set();
 
   // Apply pagination only if both pageLimit and pageNumber are provided
   if (pageLimit > 0 && pageNumber > 0) {
@@ -250,6 +253,8 @@ try {
 
       // Retrieve count and data for the specified filters with pagination
       totalSubscriber = await Customer.countDocuments(filter);
+
+    
 
       activeCustomers = await Customer.countDocuments({
           isActive: true,
@@ -281,29 +286,7 @@ try {
       customers = await Customer.find(filter);
   }
 
-  // // Calculate weekly counts
-  // const weeklyCounts = Array.from({ length: 4 }, (_, weekIndex) => ({
-  //     week: weekIndex + 1,
-  //     count: 0
-  // }));
-
-  // customers.forEach(customer => {
-  //     const signupDay = parseInt(customer.signUpDate.split('/')[0]); 
-  //     const weekNumber = getWeekNumber(signupDay);
-
-  //     // Increment the count for the corresponding week
-  //     if (weekNumber >= 1 && weekNumber <= 4) {
-  //         weeklyCounts[weekNumber - 1].count += 1;
-  //     }
-  // });
-
-
-  //   const responseObj = {
-  //     totalSubscriber,
-  //     activeCustomers,
-  //     cancelledCustomers,
-  //     customers,
-  // };  
+  
 
   // Calculate weekly counts for app registration and activation
   const appRegistrationWeeklyCounts = Array.from({ length: 4 }, (_, weekIndex) => ({
@@ -314,7 +297,12 @@ try {
   const activationWeeklyCounts = Array.from({ length: 4 }, (_, weekIndex) => ({
     week: weekIndex + 1,
     count: 0
-  })); 
+  }));  
+
+  const reviewWeeklyCounts = Array.from({ length: 4 }, (_, weekIndex) => ({
+    week: weekIndex + 1,
+    count: 0
+  }));
 
   const completedFreeTrailWeeklyCounts = Array.from({ length: 4 }, (_, weekIndex) => ({
     week: weekIndex + 1,
@@ -343,6 +331,10 @@ try {
     // Increment the count for the corresponding week in app registration
     if (weekNumber >= 1 && weekNumber <= 4) {
       appRegistrationWeeklyCounts[weekNumber - 1].count += 1;
+    } 
+
+    if (weekNumber >= 1 && weekNumber <= 4) {
+      reviewWeeklyCounts[weekNumber - 1].count += 1;
     }
 
     // Increment the count for the corresponding week in activation (if customer is active)
@@ -364,16 +356,29 @@ try {
 
     if (customer.Subscription=== "Cancelled" && weekNumber >= 1 && weekNumber <= 4) {
       cancelledSubscriptionWeeklyCounts[weekNumber - 1].count += 1;
+    }   
+
+    if(customer.review){
+      totalReviews++;
     } 
 
+    if(customer.city){
+      uniqueCitySet.add(customer.city);
+    }
 
-  });
+
+  }); 
+
+ // const uniqueCityCount = uniqueCitySet.size;
 
   const responseObj = {
     totalSubscriber,
     activeCustomers,
     cancelledCustomers,
+    totalLocations :uniqueCitySet.size,
+    totalReviews,
     customers,
+    
   };
 
   if (month) {
@@ -383,7 +388,8 @@ try {
         freeTrailCompleted: completedFreeTrailWeeklyCounts,
         freeTrailCancelled: cancelledFreeTrailWeeklyCounts,
         subscriptionCompleted: completedSubscriptionlWeeklyCounts,
-        subscriptionCancelled: cancelledSubscriptionWeeklyCounts     
+        subscriptionCancelled: cancelledSubscriptionWeeklyCounts,
+        review: reviewWeeklyCounts,   
  }  
   }
 

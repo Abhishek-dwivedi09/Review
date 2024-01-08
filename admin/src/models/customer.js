@@ -35,6 +35,9 @@ const CustomerSchema = new mongoose.Schema({
   Subscription: {
     type: Schema.Types.String,
   },
+  review : {
+    type: Schema.Types.String,
+  },
   Status: {
     type: Schema.Types.String,
   },
