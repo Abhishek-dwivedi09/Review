@@ -23,6 +23,7 @@ import { PaginationData } from "../common";
  * @param {string} Subscription.query - Subscription
  * @param {string} free_trail.query - free_trail
  * @param {string} Status.query - Status
+ * @param {string} rating.query - rating
  * @param {string} name.query - name
  * @return {object} 200 - Success response - application/json
  */  
@@ -59,6 +60,7 @@ const review = async (req,res) =>{
         const subscriptionParam = req.query.Subscription
         const freeTrailParam = req.query.free_trail
         const statusParam = req.query.Status
+        const ratingParam = req.query.rating
       
         // Validate month parameter
         let month;
@@ -82,6 +84,10 @@ const review = async (req,res) =>{
         }
         if (typeParam) {
             filter.type = typeParam;
+        }  
+
+        if (ratingParam) {
+            filter.rating = ratingParam;
         } 
         if (subscriptionParam) {
           //filter.Subscription = subscriptionParam;
