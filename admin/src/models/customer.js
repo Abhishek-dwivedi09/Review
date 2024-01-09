@@ -38,6 +38,9 @@ const CustomerSchema = new mongoose.Schema({
   review : {
     type: Schema.Types.String,
   },
+  rating : {
+   type: Schema.Types.Number
+  },
   Status: {
     type: Schema.Types.String,
   },

@@ -242,9 +242,6 @@ try {
   let activeCustomers;
   let cancelledCustomers;
   let customers; 
-  let totalReviews = 0; 
-  //let  totalLocations = 0;  
-  let uniqueCitySet =  new Set();
 
   // Apply pagination only if both pageLimit and pageNumber are provided
   if (pageLimit > 0 && pageNumber > 0) {
@@ -358,13 +355,6 @@ try {
       cancelledSubscriptionWeeklyCounts[weekNumber - 1].count += 1;
     }   
 
-    if(customer.review){
-      totalReviews++;
-    } 
-
-    if(customer.city){
-      uniqueCitySet.add(customer.city);
-    }
 
 
   }); 
@@ -375,8 +365,6 @@ try {
     totalSubscriber,
     activeCustomers,
     cancelledCustomers,
-    totalLocations :uniqueCitySet.size,
-    totalReviews,
     customers,
     
   };
@@ -388,8 +376,7 @@ try {
         freeTrailCompleted: completedFreeTrailWeeklyCounts,
         freeTrailCancelled: cancelledFreeTrailWeeklyCounts,
         subscriptionCompleted: completedSubscriptionlWeeklyCounts,
-        subscriptionCancelled: cancelledSubscriptionWeeklyCounts,
-        review: reviewWeeklyCounts,   
+        subscriptionCancelled: cancelledSubscriptionWeeklyCounts,  
  }  
   }
 
@@ -398,7 +385,9 @@ try {
   return res.status(500).json({ error: error.message });
 }
    
-}     
+}      
+
+
 
   export default {
     login,
