@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 import { Schema, model } from "mongoose";
 
-const CustomerSchema = new mongoose.Schema({
+const VisitorSchema = new mongoose.Schema({
   first_name: {
     type: Schema.Types.String,
   },
@@ -26,37 +26,22 @@ const CustomerSchema = new mongoose.Schema({
   location: {
     type: Schema.Types.Number
   },
-  password: {
-    type: Schema.Types.String,
-  },
-  free_trail: {
-    type: Schema.Types.String,
-  },
-  Subscription: {
-    type: Schema.Types.String,
+  visits: {
+    type: Schema.Types.Number
   },
   review : {
     type: Schema.Types.String,
   },
-  rating : {
-   type: Schema.Types.Number
-  },
-  Reviews_before : {
-    type: Schema.Types.Number
-   },
-   Reviews_after : {
-    type: Schema.Types.Number
-   },
-   rating : {
-    type: Schema.Types.Number
-   },
-  Status: {
-    type: Schema.Types.String,
-  },
-  signUpDate: {
+  visitDate: {
     type: Schema.Types.String,
   },
   type: {
+    type: Schema.Types.String,
+  },
+  state: {
+    type: Schema.Types.String,
+  },
+  Referrals: {
     type: Schema.Types.String,
   },
   isActive: {
@@ -68,4 +53,4 @@ const CustomerSchema = new mongoose.Schema({
 );
 
 // module.exports = User = mongoose.model("users", userSchema); 
-export default model("customer", CustomerSchema);
+export default model("visitor", VisitorSchema);

@@ -172,6 +172,7 @@ const review = async (req,res) =>{
         ];
 
       
+      
         customers.forEach(customer => {
           const signupDay = parseInt(customer.signUpDate.split('/')[0]);
           const weekNumber = getWeekNumber(signupDay);
@@ -183,7 +184,7 @@ const review = async (req,res) =>{
           if(customer.review){
             totalReviews++;  
             
-          } 
+          }  
 
           if(customer.rating){
             const rating = customer.rating;
