@@ -112,7 +112,7 @@ const review = async (req,res) =>{
         let activeCustomers;
         let cancelledCustomers;
         let customers; 
-        let totalReviews = 0; 
+        let totalReviews ;
         //let  totalLocations = 0;  
         let uniqueCitySet =  new Set();
       
@@ -122,10 +122,8 @@ const review = async (req,res) =>{
             const { offset, limit } = PaginationData.paginationData(pageLimit, pageNumber);
       
             // Retrieve count and data for the specified filters with pagination
-            totalSubscriber = await Customer.countDocuments(filter);
-      
-          
-      
+            totalSubscriber = await Customer.countDocuments(filter); 
+
             activeCustomers = await Customer.countDocuments({
                 isActive: true,
                 ...filter
@@ -135,10 +133,15 @@ const review = async (req,res) =>{
                 isActive: false,
                 ...filter
             });
-      
+          
+            totalReviews = await Customer.countDocuments({ review: { $exists: true }, ...filter });
+
             customers = await Customer.find(filter)
                 .skip(offset)
-                .limit(limit);
+                .limit(limit); 
+
+           
+
         } else {
             // Retrieve count and data without pagination
             totalSubscriber = await Customer.countDocuments(filter);
@@ -153,7 +156,10 @@ const review = async (req,res) =>{
                 ...filter
             });
       
-            customers = await Customer.find(filter);
+            customers = await Customer.find(filter); 
+
+              // Count total reviews without pagination
+              totalReviews = await Customer.countDocuments({ review: { $exists: true }, ...filter });
         }
       
         
@@ -169,9 +175,10 @@ const review = async (req,res) =>{
             { rating: 3, count: 0 },
             { rating: 4, count: 0 },
             { rating: 5, count: 0 }
-        ];
+        ]; 
 
-      
+        
+
       
         customers.forEach(customer => {
           const signupDay = parseInt(customer.signUpDate.split('/')[0]);
@@ -181,10 +188,7 @@ const review = async (req,res) =>{
             reviewWeeklyCounts[weekNumber - 1].count += 1;
           }
      
-          if(customer.review){
-            totalReviews++;  
-            
-          }  
+       
 
           if(customer.rating){
             const rating = customer.rating;
@@ -207,6 +211,7 @@ const review = async (req,res) =>{
           totalReviews,
           customers,
           ratingCounts,
+          
         };
       
         if (month) {
