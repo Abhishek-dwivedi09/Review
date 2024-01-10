@@ -24,13 +24,16 @@ const VisitorSchema = new mongoose.Schema({
     type: Schema.Types.String,
   },
   location: {
-    type: Schema.Types.Number
+    type: Schema.Types.String,
+  }, 
+  no_of_location: {
+    type: Schema.Types.Number,
   },
   visits: {
     type: Schema.Types.Number
   },
-  review : {
-    type: Schema.Types.String,
+  reviews : {
+    type: Schema.Types.Number,
   },
   visitDate: {
     type: Schema.Types.String,
@@ -41,8 +44,8 @@ const VisitorSchema = new mongoose.Schema({
   state: {
     type: Schema.Types.String,
   },
-  Referrals: {
-    type: Schema.Types.String,
+  referrals: {
+    type: Schema.Types.Number,
   },
   isActive: {
     type: Schema.Types.Boolean,
