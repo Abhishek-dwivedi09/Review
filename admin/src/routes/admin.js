@@ -11,7 +11,9 @@ AdminRouter.post(
 
 AdminRouter.post("/forgot-password", AdminController.forgotPassword);
 
-AdminRouter.get("/customer/analytics", AdminController.customerAnalytics)
+
+
+
 
 
 

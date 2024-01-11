@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { ErrorHandler, Emails, GenerateNumber, Password } from "../common";
 import { PaginationData } from "../common";
+const moment = require('moment');
 
 /**
  * @typedef {object} visitors
@@ -18,6 +19,8 @@ import { PaginationData } from "../common";
  * @param {string} location.query - location
  * @param {string} city.query - city
  * @param {string} state.query - state
+ * @param {string} today.query - today
+ * @param {string} thisWeek.query - thisWeek
  * @param {string} review.query - review
  * @param {string} name.query - name
  * @return {object} 200 - Success response - application/json
@@ -41,7 +44,21 @@ const monthMap = {
 const getWeekNumber = (day) => {
   // Calculate the week number for a given day of the month
   return Math.ceil(day / 7);
-};
+}; 
+
+function getCurrentWeekDates() {
+  const currentDate = new Date();
+  const currentDay = currentDate.getDay();
+  const startDate = new Date(currentDate);
+  startDate.setDate(currentDate.getDate() - currentDay);
+  startDate.setHours(0, 0, 0, 0);
+
+  const endDate = new Date(startDate);
+  endDate.setDate(startDate.getDate() + 6);
+  endDate.setHours(23, 59, 59, 999);
+
+  return { startDate, endDate };
+}
 
 const visitors = async (req, res) => {
   try {
@@ -53,6 +70,9 @@ const visitors = async (req, res) => {
     const nameParam = req.query.name;
     const  stateParam = req.query.state
     const locationParam = req.query.location;
+    const todayParam = req.query.today; // New query parameter for today
+    const thisWeekParam = req.query.thisWeek; // New query parameter for this week
+   
 
     // validate filter
     let month;
@@ -72,7 +92,8 @@ const visitors = async (req, res) => {
     const filter = {};
     if (month) {
       filter.visitDate = { $regex: `/${month}/` };
-    }
+    } 
+
 
     if (cityParam) {
       filter.city = cityParam;
@@ -108,6 +129,32 @@ const visitors = async (req, res) => {
 
     if (locationParam) {
       filter.location = locationParam;
+    } 
+
+    if (todayParam) {
+      const today = new Date();
+      const formattedToday = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
+      console.log("Formatted Today:", formattedToday);
+
+      // Trim spaces and adjust the regex
+      filter.visitDate = formattedToday.trim();
+      console.log("Filter for Today:", filter);
+    }
+
+    // Update the filter object to include this week and this month filter
+    if (thisWeekParam) {
+    
+      // const startOfWeek = today.startOf('week');
+      // const endOfWeek = today.endOf('week'); 
+
+      const startOfLastWeek = moment().subtract(1, "weeks").startOf("week");
+      const endOfLastWeek = moment(startOfLastWeek).endOf("week");
+    
+      filter.visitDate = {
+        $gte: startOfLastWeek.format('DD/MM/YYYY'),
+        $lte: endOfLastWeek.format('DD/MM/YYYY'),
+      };
+      console.log("Filter for This Week:", filter);
     }
 
     let totalVisitors;
@@ -130,18 +177,41 @@ const visitors = async (req, res) => {
 
       visitors = await Visitor.find(filter);
       console.log("Resulting Visitors:", visitors);
-    }
+    } 
+
+    // Aggregation pipeline to get count of visitors based on city
+    const cityCountPipeline = [
+      { $match: filter },
+      {
+        $group: {
+          _id: "$city",
+          count: { $sum: 1 },
+        },
+      },
+    ];
+
+    const cityCounts = await Visitor.aggregate(cityCountPipeline);
+
+    const cityVisitorCounts = cityCounts.map((item) => ({
+      city: item._id,
+      visitorCount: item.count,
+    }));
+
 
     const responseObj = {
       totalVisitors,
       visitors,
+      cityVisitorCounts,
     };
 
     return res.status(200).json(responseObj);
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
-};
+}; 
+
+
+
 
 export default {
   visitors,
