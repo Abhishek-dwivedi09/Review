@@ -635,18 +635,173 @@ const review = async (req, res) => {
  * @param {string} pageLimit.query - pageLimit
  * @param {string} pageNumber.query - pageNumber
  * @param {string} month.query - month
+ * @param {string} state.query - state
  * @param {string} type.query - type
- * @param {string} location.query - location
- * @param {string} Subscription.query - Subscription
- * @param {string} free_trail.query - free_trail
- * @param {string} Status.query - Status
- * @param {string} rating.query - rating
  * @param {string} name.query - name
  * @return {object} 200 - Success response - application/json
- */
+ */ 
+
+  const subscription = async (req,res)=>{
+
+     try { 
+
+      const monthParam = req.query.month;
+      const pageLimitParam = req.query.pageLimit;
+      const pageNumberParam = req.query.pageNumber; 
+      const  stateParam = req.query.state
+      const  typeParam = req.query.type
+
+      let month; 
+        
+      if (monthParam) {
+    
+        month = monthMap[monthParam.toLowerCase()];
+    
+        if (!month) {
+            return res.status(400).json({ error: "Invalid month name" });
+        }
+    } 
+     
+      // Validate pageLimit and pageNumber parameters or set default values
+    const pageLimit = parseInt(pageLimitParam) || 0;  
+    const pageNumber = parseInt(pageNumberParam) || 1;   
+  
+    const filter = {};
+    if (month) {
+        filter.signUpDate = { $regex: `/${month}/` };
+    }  
+
+ if (stateParam) {
+      filter.state = stateParam;
+    } 
+
+    if (typeParam) {
+      filter.type = typeParam;
+    }
+   
+
+  
+     let totalSubscriptions;
+     let cancelledSubscription;
+     let activeSubscription;
+     let expiredSubscription; 
+     let customers; 
+
+     if(pageLimit >0 && pageNumber>0){
+       
+      const { offset, limit } = PaginationData.paginationData(pageLimit, pageNumber); 
+      totalSubscriptions = await Customer.countDocuments({
+        ...filter
+     }) 
+  
+       cancelledSubscription = await Customer.countDocuments({
+          Subscription : "Cancelled",
+          ...filter
+       }) 
+  
+       activeSubscription = await Customer.countDocuments({
+        Subscription : "Active",
+        ...filter
+     }) 
+  
+     expiredSubscription = await Customer.countDocuments({
+      Subscription : "Expired",
+      ...filter
+   })  
+  
+   customers = await Customer.find(filter)
+   .skip(offset)
+   .limit(limit); 
+  
+  } else{ 
+  
+    totalSubscriptions = await Customer.countDocuments({
+      Subscription : "Not started",
+      ...filter
+   }) 
+
+     cancelledSubscription = await Customer.countDocuments({
+        Subscription : "Cancelled",
+        ...filter
+     }) 
+
+     activeSubscription = await Customer.countDocuments({
+      Subscription : "Active",
+      ...filter
+   }) 
+
+   expiredSubscription = await Customer.countDocuments({
+    Subscription : "Expired",
+    ...filter
+ })  
+
+ customers = await Customer.find(filter)
+  } 
+
+  var activeSubscriptionweeklycount = Array.from({ length: 4 }, (_, weekIndex) => ({
+    week: weekIndex + 1,
+    count: 0
+  }));  
+
+  customers.forEach(customer => {
+    const signupDay = parseInt(customer.signUpDate.split('/')[0]);
+    const weekNumber = getWeekNumber(signupDay);
+
+    if (customer.Subscription=== "Active" && weekNumber >= 1 && weekNumber <= 4) {
+      activeSubscriptionweeklycount[weekNumber - 1].count += 1;
+    } 
+
+  }) 
+
+   // Aggregation pipeline to get count of visitors based on city
+   const cityCountPipeline = [
+    { $match: filter },
+    {
+      $group: {
+        _id: "$city",
+        count: { $sum: 1 },
+      },
+    },
+  ];
+
+  const cityCounts = await Customer.aggregate(cityCountPipeline);
+
+  const citySubscriberCounts = cityCounts.map((item) => ({
+    city: item._id,
+    visitorCount: item.count,
+  }));
+
+
+   
+  const responseObj = {
+    totalSubscriptions,
+    activeSubscription,
+    cancelledSubscription,
+    expiredSubscription,
+    customers,
+    citySubscriberCounts,
+  } 
+
+  if(month) {
+    responseObj.weeklyCounts = {
+      activeWeeklyCount: activeSubscriptionweeklycount
+         
+}  
+  }
+ 
+ res.status(200).json(responseObj)
+  
+      
+     } catch (error) { 
+
+      return res.status(500).json({ error: error.message });
+      
+     }
+  }
 
 export default {
   customerAnalytics,
   freeTrails,
   review,
+  subscription,
 };

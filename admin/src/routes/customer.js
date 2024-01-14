@@ -10,6 +10,8 @@ CustomerRouter.get("/analytics", CustomerController.customerAnalytics)
 
 CustomerRouter.get("/free_trail", CustomerController.freeTrails)
 
+CustomerRouter.get("/subscription", CustomerController.subscription)
+
 
 
 

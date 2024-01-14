@@ -141,19 +141,21 @@ const visitors = async (req, res) => {
       console.log("Filter for Today:", filter);
     }
 
-    // Update the filter object to include this week and this month filter
     if (thisWeekParam) {
+      const today = new Date();
+      const startOfWeek = new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay()); // Start of the week (Sunday)
+      const endOfWeek = new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay() + 6); // End of the week (Saturday)
     
-      // const startOfWeek = today.startOf('week');
-      // const endOfWeek = today.endOf('week'); 
-
-      const startOfLastWeek = moment().subtract(1, "weeks").startOf("week");
-      const endOfLastWeek = moment(startOfLastWeek).endOf("week");
+      // Format start and end dates in "dd/mm/yyyy" format
+      const formattedStartOfWeek = `${startOfWeek.getDate().toString().padStart(2, '0')}/${(startOfWeek.getMonth() + 1).toString().padStart(2, '0')}/${startOfWeek.getFullYear()}`;
+      const formattedEndOfWeek = `${endOfWeek.getDate().toString().padStart(2, '0')}/${(endOfWeek.getMonth() + 1).toString().padStart(2, '0')}/${endOfWeek.getFullYear()}`;
     
-      filter.visitDate = {
-        $gte: startOfLastWeek.format('DD/MM/YYYY'),
-        $lte: endOfLastWeek.format('DD/MM/YYYY'),
-      };
+      console.log("Formatted Start of Week:", formattedStartOfWeek);
+      console.log("Formatted End of Week:", formattedEndOfWeek);
+    
+      // Set the filter to include records with visitDate within the current week range using regex
+      filter.visitDate = { $regex: `(${formattedStartOfWeek}|${formattedEndOfWeek})` };
+    
       console.log("Filter for This Week:", filter);
     }
 
