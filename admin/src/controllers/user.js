@@ -113,7 +113,7 @@ const user = async (req,res) =>{
         if (!firstName || !lastName || !phone || !role || !email ) {
           return res.status(400).json({ error: 'Missing required fields.' });
         } 
-         const emails = await User.find({email});
+         const emails = await User.findOne({email});
          if(emails){
             return res.status(400).json({error: "email alredy exist"});
          }
@@ -164,108 +164,202 @@ const user = async (req,res) =>{
 
 const userDetails = async (req,res) =>{
 
-    try { 
+    try {
+        const nameParam = req.query.name;
+        const pageLimitParam = req.query.pageLimit;
+        const pageNumberParam = req.query.pageNumber;
+        const emailParam = req.query.email;
+        const roleParam = req.query.role;
+        const statusParam = req.query.status;
+        const idParam = req.query._id;
+    
+        const filter = {};
+    
+        if (idParam) {
+            filter._id = idParam;
+        }
+    
+        if (nameParam) {
+            const nameRegex = new RegExp(nameParam, 'i');
+            filter.$or = [
+                { firstName: nameRegex },
+                { lastName: nameRegex },
+                { $expr: { $regexMatch: { input: { $concat: ["$first_name", " ", "$last_name"] }, regex: nameRegex } } }
+            ];
+        }
+    
+        if (emailParam) {
+            filter.email = emailParam;
+        }
+    
+        const pageLimit = parseInt(pageLimitParam) || 0;
+        const pageNumber = parseInt(pageNumberParam) || 1;
+    
+        if (roleParam) {
+            const roles = roleParam.split(',');
+            const trimmedRoles = roles.map(role => role.trim());
+            filter.role = { $in: trimmedRoles };
+        }
+    
+        if (statusParam) {
+            const statuses = statusParam.split(',');
+            const trimmedStatues = statuses.map(status => status.trim());
+            filter.status = { $in: trimmedStatues };
+        } 
 
-    const nameParam = req.query.name;
-    const pageLimitParam = req.query.pageLimit;
-    const pageNumberParam = req.query.pageNumber;
-    const emailParam = req.query.email;
-    const roleParam = req.query.role;
-    const statusParam = req.query.satus;
-    const idParam = req.query._id;
+        let totalUsers;
+    
+        if (pageLimit > 0 && pageNumber > 0) {
+            const { offset, limit } = PaginationData.paginationData(pageLimit, pageNumber);
+              
+            totalUsers = await User.countDocuments(filter)
+    
+            const users = await User.find(filter)
+                .skip(offset)
+                .limit(limit);
+    
+            if (!users) {
+                return res.status(404).json({ message: 'No users found.' });
+            }
+    
+            const formattedUsers = users.map(user => ({
+                _id: user._id,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                email: user.email,
+                role: user.role,
+                permissions: user.permissions,
+                status: user.status,
+                createdAt: user.createdAt,
+                updatedAt: user.updatedAt,
+                __v: user.__v,
+            }));
 
-    const filter = {};
-
-    if (idParam) {
-        filter._id = idParam;
+            const responseObj = {
+                totalUsers,
+                formattedUsers,
+                
+              };
+    
+            res.status(200).send(responseObj);
+        } else {
+            return res.status(400).json({ message: 'Invalid page limit or number.' });
+        }
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
     }
-   
-
-    if (nameParam) {
-        // Use a case-insensitive regex for filtering by first_name, last_name, and their combination
-        const nameRegex = new RegExp(nameParam, 'i');
-        filter.$or = [
-            { firstName: nameRegex },
-            { lastName: nameRegex },
-            { $expr: { $regexMatch: { input: { $concat: ["$first_name", " ", "$last_name"] }, regex: nameRegex } } }
-        ];
-    } 
-
-     if(emailParam){
-        filter.email = emailParam;
-     } 
-
-    //  if(roleParam){
-    //     filter.role = roleParam;
-    //  } 
- 
-    const pageLimit = parseInt(pageLimitParam) || 0;  
-    const pageNumber = parseInt(pageNumberParam) || 1;  
-    if (roleParam) {
-        
-        const roles = roleParam.split(',');
     
-    
-        const trimmedRoles = roles.map(role => role.trim());
-    
-    
-        filter.role = { $in: trimmedRoles };
-        console.log('roleParam:', roleParam);
-        console.log('Filter:', filter);
-    }
-
-    if (statusParam) {
-        
-        const statues = statusParam.split(',');
-    
-    
-        const trimmedStatues = statues.map(status => status.trim());
-    
-    
-        filter.status = { $in: trimmedStatues };
-        console.log('statusParam:', statusParam);
-        console.log('Filter:', filter);
-    }
-
-    //  if(statusParam){
-    //     filter.status = statusParam;
-    //  } 
-     if (pageLimit > 0 && pageNumber > 0) {
-        const { offset, limit } = PaginationData.paginationData(pageLimit, pageNumber);
-  
-
-     var users = await User.find(filter) 
-     .skip(offset)
-     .limit(limit);
-     } 
-
-     const formattedUsers = users.map(user => ({
-        _id: user._id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        role: user.role,
-        permissions: user.permissions,
-        status: user.status,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt,
-        __v: user.__v,
-    }));
-
-    
-
-     res.status(200).send({
-        message: "success",
-        data: formattedUsers
-     })  
-    } catch (error) { 
-        return res.status(500).json({error: error.message})   
-    }
-
     
 }
+
+
+/**
+ * @typedef {object} editUser
+ * @property {string} firstName - firstName
+ * @property {string} lastName - lastName
+ * @property {string} email - email
+ * @property {string} phone - phone
+ * @property {string} role -  role
+ * @property {object} permissions -  permissions
+ * @property {string} status - status
+
+*/
+
+/**
+ * POST /v1/user/update-user/{_id}
+ * @summary update user 
+ * @tags User
+ * @param {string} _id.path.required - _id(ObjectId)
+ * @param {editUser} request.body.required - User update - multipart/form-data
+ * @return {object} 200 - Success response - application/json
+ */
+
+const editUser = async (req, res) => {
+    try {
+        const { _id } = req.params;
+        console.log('User ID:', _id);
+
+
+        const { firstName, lastName, phone, role, email, permissions, status } = req.body;
+        console.log("req.body data", req.body)
+
+        if (!firstName || !lastName || !phone || !role || !email) {
+            return res.status(400).json({ error: 'Missing required fields.' });
+        }
+
+        // // Check if the email already exists for another user
+        // const existingUser = await User.findOne({ email, _id: { $ne: userId } });
+
+        // if (existingUser) {
+        //     return res.status(400).json({ error: 'Email already exists for another user.' });
+        // }
+
+        const userToUpdate = await User.findById(_id);
+        console.log('Found User:', userToUpdate);
+
+        if (!userToUpdate) {
+            return res.status(404).json({ error: 'User not found.' });
+        }
+
+        // Update the user details
+        userToUpdate.firstName = firstName;
+        userToUpdate.lastName = lastName;
+        userToUpdate.phone = phone;
+        userToUpdate.role = role;
+        userToUpdate.email = email;
+        userToUpdate.status = status;
+
+        // Optionally, update permissions if needed
+        userToUpdate.permissions = updatePermissions(userToUpdate.permissions, permissions);
+
+        // Save the updated user
+        const updatedUser = await userToUpdate.save();
+
+        res.status(200).json(updatedUser);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+/**
+ * @typedef {object} updateStatus
+*/
+
+/**
+ * POST /v1/user/update-status/{_id}
+ * @summary update user 
+ * @tags User
+ * @param {string} _id.path.required - _id(ObjectId)
+ * @return {object} 200 - Success response - application/json
+ */
+
+const updateStatus = async (req,res) =>{
+   try{
+    const {_id} = req.params;
+
+    const userToUpdate = await User.findById(_id);
+
+if(!userToUpdate){
+  res.status(200).json({error : "user not found"});
+} 
+
+userToUpdate.status = "suspended";
+  // Save the updated user
+  const updatedUser = await userToUpdate.save();
+
+  res.status(200).json(updatedUser);
+   }
+    
+ catch (error) {
+  res.status(500).json({ error: error.message });
+}
+};
+
+
 
 export default {
     user,
     userDetails,
+    editUser,
+    updateStatus,
   };

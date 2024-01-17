@@ -15,6 +15,17 @@ UserRouter.get(
     "/user-data",
     UserController.userDetails
   ); 
+
+  UserRouter.post(
+    "/update-user/:_id",
+    uploads.single("userImage"),
+    UserController.editUser
+  )
+
+  UserRouter.post(
+    "/update-status/:_id",
+    UserController.updateStatus
+  )
   
 
 
