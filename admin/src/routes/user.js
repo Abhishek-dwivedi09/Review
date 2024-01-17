@@ -16,13 +16,13 @@ UserRouter.get(
     UserController.userDetails
   ); 
 
-  UserRouter.post(
+  UserRouter.put(
     "/update-user/:_id",
     uploads.single("userImage"),
     UserController.editUser
   )
 
-  UserRouter.post(
+  UserRouter.put(
     "/update-status/:_id",
     UserController.updateStatus
   )

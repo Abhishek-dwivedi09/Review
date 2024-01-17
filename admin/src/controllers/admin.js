@@ -73,6 +73,7 @@ const login = async (req, res) => {
  * Post /v1/admin/forgot-password
  * @summary Forget password
  * @tags Admin
+ * @security BearerAuth
  * @param {forgotPasswordBody} request.body.required
  * @return {object} 200 - Success response - application/json
  */

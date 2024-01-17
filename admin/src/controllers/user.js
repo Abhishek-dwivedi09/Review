@@ -47,7 +47,9 @@ require('dotenv').config();
 //       };
     
 //       await transporter.sendMail(mailOptions);
-// }
+// } 
+
+// @security BearerAuth
   
 
 /**
@@ -100,7 +102,9 @@ const user = async (req,res) =>{
 
     try {  
 
-        const { firstName, lastName, phone, role, email, permissions, status } = req.body; 
+        const { firstName, lastName, phone, role, email, permissions } = req.body; 
+
+         const status = req.body.status || 'active'
 
     //   const fileData = req.file; 
      //  console.log(fileData);
@@ -228,6 +232,7 @@ const userDetails = async (req,res) =>{
                 lastName: user.lastName,
                 email: user.email,
                 role: user.role,
+                phone: user.phone,
                 permissions: user.permissions,
                 status: user.status,
                 createdAt: user.createdAt,
@@ -242,8 +247,29 @@ const userDetails = async (req,res) =>{
               };
     
             res.status(200).send(responseObj);
-        } else {
-            return res.status(400).json({ message: 'Invalid page limit or number.' });
+        } else { 
+            totalUsers = await User.countDocuments(filter)
+            const users = await User.find(filter)
+            const formattedUsers = users.map(user => ({
+                _id: user._id,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                email: user.email,
+                role: user.role,
+                phone: user.phone,
+                permissions: user.permissions,
+                status: user.status,
+                createdAt: user.createdAt,
+                updatedAt: user.updatedAt,
+                __v: user.__v,
+            })); 
+
+            const responseObj = {
+                totalUsers,
+                formattedUsers,
+                
+              };
+            return res.status(200).json(responseObj);
         }
     } catch (error) {
         return res.status(500).json({ error: error.message });
@@ -266,7 +292,7 @@ const userDetails = async (req,res) =>{
 */
 
 /**
- * POST /v1/user/update-user/{_id}
+ * PUT /v1/user/update-user/{_id}
  * @summary update user 
  * @tags User
  * @param {string} _id.path.required - _id(ObjectId)
@@ -326,7 +352,7 @@ const editUser = async (req, res) => {
 */
 
 /**
- * POST /v1/user/update-status/{_id}
+ * PUT /v1/user/update-status/{_id}
  * @summary update user 
  * @tags User
  * @param {string} _id.path.required - _id(ObjectId)
