@@ -2,6 +2,7 @@ import { Console } from "winston/lib/winston/transports";
 import { User } from "../models" 
 const mongoose = require('mongoose');
 const nodemailer = require('nodemailer'); 
+import { PaginationData } from "../common";
 
 require('dotenv').config();
 
@@ -111,7 +112,11 @@ const user = async (req,res) =>{
 
         if (!firstName || !lastName || !phone || !role || !email ) {
           return res.status(400).json({ error: 'Missing required fields.' });
-        }
+        } 
+         const emails = await User.find({email});
+         if(emails){
+            return res.status(400).json({error: "email alredy exist"});
+         }
         
       
         const newUser = new User({
@@ -146,10 +151,13 @@ const user = async (req,res) =>{
  * GET /v1/user/user-data
  * @summary user data
  * @tags User
+ * @param {string} pageLimit.query - pageLimit
+ * @param {string} pageNumber.query - pageNumber
  * @param {string} name.query - name
  * @param {string} email.query - email
  * @param {string} role.query - role
  * @param {string} status.query - status
+ *  @param {string} _id.query - _id
  * @return {object} 200 - Success response - application/json
  */
 
@@ -159,11 +167,20 @@ const userDetails = async (req,res) =>{
     try { 
 
     const nameParam = req.query.name;
+    const pageLimitParam = req.query.pageLimit;
+    const pageNumberParam = req.query.pageNumber;
     const emailParam = req.query.email;
     const roleParam = req.query.role;
     const statusParam = req.query.satus;
+    const idParam = req.query._id;
 
     const filter = {};
+
+    if (idParam) {
+        filter._id = idParam;
+    }
+   
+
     if (nameParam) {
         // Use a case-insensitive regex for filtering by first_name, last_name, and their combination
         const nameRegex = new RegExp(nameParam, 'i');
@@ -178,15 +195,49 @@ const userDetails = async (req,res) =>{
         filter.email = emailParam;
      } 
 
-     if(roleParam){
-        filter.role = roleParam;
-     }
+    //  if(roleParam){
+    //     filter.role = roleParam;
+    //  } 
+ 
+    const pageLimit = parseInt(pageLimitParam) || 0;  
+    const pageNumber = parseInt(pageNumberParam) || 1;  
+    if (roleParam) {
+        
+        const roles = roleParam.split(',');
+    
+    
+        const trimmedRoles = roles.map(role => role.trim());
+    
+    
+        filter.role = { $in: trimmedRoles };
+        console.log('roleParam:', roleParam);
+        console.log('Filter:', filter);
+    }
 
-     if(statusParam){
-        filter.status = statusParam;
+    if (statusParam) {
+        
+        const statues = statusParam.split(',');
+    
+    
+        const trimmedStatues = statues.map(status => status.trim());
+    
+    
+        filter.status = { $in: trimmedStatues };
+        console.log('statusParam:', statusParam);
+        console.log('Filter:', filter);
+    }
+
+    //  if(statusParam){
+    //     filter.status = statusParam;
+    //  } 
+     if (pageLimit > 0 && pageNumber > 0) {
+        const { offset, limit } = PaginationData.paginationData(pageLimit, pageNumber);
+  
+
+     var users = await User.find(filter) 
+     .skip(offset)
+     .limit(limit);
      } 
-
-     const users = await User.find(filter)  
 
      const formattedUsers = users.map(user => ({
         _id: user._id,

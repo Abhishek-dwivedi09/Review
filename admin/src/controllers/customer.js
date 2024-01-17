@@ -716,7 +716,6 @@ const review = async (req, res) => {
   } else{ 
   
     totalSubscriptions = await Customer.countDocuments({
-      Subscription : "Not started",
       ...filter
    }) 
 
@@ -736,7 +735,12 @@ const review = async (req, res) => {
  })  
 
  customers = await Customer.find(filter)
-  } 
+  }  
+
+  var totalSubscriptionweeklycount = Array.from({ length: 4 }, (_, weekIndex) => ({
+    week: weekIndex + 1,
+    count: 0
+  }));
 
   var activeSubscriptionweeklycount = Array.from({ length: 4 }, (_, weekIndex) => ({
     week: weekIndex + 1,
@@ -750,6 +754,10 @@ const review = async (req, res) => {
     if (customer.Subscription=== "Active" && weekNumber >= 1 && weekNumber <= 4) {
       activeSubscriptionweeklycount[weekNumber - 1].count += 1;
     } 
+
+    if (weekNumber >= 1 && weekNumber <= 4) {
+      totalSubscriptionweeklycount[weekNumber - 1].count += 1;
+    }
 
   }) 
 
@@ -784,7 +792,8 @@ const review = async (req, res) => {
 
   if(month) {
     responseObj.weeklyCounts = {
-      activeWeeklyCount: activeSubscriptionweeklycount
+      activeWeeklyCount: activeSubscriptionweeklycount,
+      totalSubscriptionweeklycount: totalSubscriptionweeklycount
          
 }  
   }

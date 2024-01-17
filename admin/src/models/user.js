@@ -125,10 +125,11 @@ const userSchema = new mongoose.Schema({
     userImage: {
         type: Schema.Types.String,
       },
-    status: {
+      status: {
         type: String,
-        required: true
+        default: 'active',
     },
+
     isVerified: {
         type: Boolean,
        // required: true
