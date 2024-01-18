@@ -68,6 +68,7 @@ require('dotenv').config();
  * POST /v1/user
  * @summary user create account
  * @tags User 
+ * @security BearerAuth
  * @param {user} request.body.required - User info - multipart/form-data
  * @return {object} 200 - Success response - application/json
  */  
@@ -155,13 +156,14 @@ const user = async (req,res) =>{
  * GET /v1/user/user-data
  * @summary user data
  * @tags User
+ * @security BearerAuth
  * @param {string} pageLimit.query - pageLimit
  * @param {string} pageNumber.query - pageNumber
  * @param {string} name.query - name
  * @param {string} email.query - email
  * @param {string} role.query - role
  * @param {string} status.query - status
- *  @param {string} _id.query - _id
+ * @param {string} _id.query - _id
  * @return {object} 200 - Success response - application/json
  */
 
@@ -199,14 +201,44 @@ const userDetails = async (req,res) =>{
         const pageLimit = parseInt(pageLimitParam) || 0;
         const pageNumber = parseInt(pageNumberParam) || 1;
     
+        // if (roleParam) {
+        //     const roles = roleParam.split(',');
+        //     const trimmedRoles = roles.map(role => role.trim());
+        //     filter.role = { $in: trimmedRoles };
+        // }  
+
         if (roleParam) {
-            const roles = roleParam.split(',');
+            let roles; 
+
+            roles = JSON.parse(roleParam);
+        
+            // try {
+            //     // Attempt to parse roleParam as JSON
+            //     roles = JSON.parse(roleParam);
+            // } catch (error) {
+            //     // If parsing fails, treat roleParam as a comma-separated string
+            //     // roles = roleParam.split(',').map(role => role.trim());
+            //     res.status(500).json({error: "please provide array of string"});
+            // }
+        
             const trimmedRoles = roles.map(role => role.trim());
             filter.role = { $in: trimmedRoles };
+        
+            // Add detailed console logs for debugging
+            console.log("RoleParam Type:", typeof roleParam);
+            console.log("RoleParam Content:", roleParam);
+            console.log("Trimmed Roles:", trimmedRoles);
+            console.log("Filter:", filter);
         }
+        
+        
+        
     
         if (statusParam) {
-            const statuses = statusParam.split(',');
+            let statuses; 
+
+            statuses = JSON.parse(statusParam);
+        
             const trimmedStatues = statuses.map(status => status.trim());
             filter.status = { $in: trimmedStatues };
         } 
@@ -295,6 +327,7 @@ const userDetails = async (req,res) =>{
  * PUT /v1/user/update-user/{_id}
  * @summary update user 
  * @tags User
+ * @security BearerAuth
  * @param {string} _id.path.required - _id(ObjectId)
  * @param {editUser} request.body.required - User update - multipart/form-data
  * @return {object} 200 - Success response - application/json
@@ -355,6 +388,7 @@ const editUser = async (req, res) => {
  * PUT /v1/user/update-status/{_id}
  * @summary update user 
  * @tags User
+ * @security BearerAuth
  * @param {string} _id.path.required - _id(ObjectId)
  * @return {object} 200 - Success response - application/json
  */

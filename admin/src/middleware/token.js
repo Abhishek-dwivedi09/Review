@@ -51,7 +51,7 @@ export const ValidateToken = async (req, res, next) => {
 
     console.log("Decoded Token:", tokenData);
 
-    const currentUser = await User.findOne({
+    const currentUser = await Admin.findOne({
       _id: tokenData.id,
       // fcmToken: tokenData.fcmToken
     }); 

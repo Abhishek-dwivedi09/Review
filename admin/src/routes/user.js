@@ -13,17 +13,20 @@ UserRouter.post(
 
 UserRouter.get(
     "/user-data",
+    ValidateToken,
     UserController.userDetails
   ); 
 
   UserRouter.put(
     "/update-user/:_id",
+    ValidateToken,
     uploads.single("userImage"),
     UserController.editUser
   )
 
   UserRouter.put(
     "/update-status/:_id",
+    ValidateToken,
     UserController.updateStatus
   )
   
