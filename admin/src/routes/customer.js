@@ -4,13 +4,13 @@ import { ValidateToken } from "../middleware/token";
 
 const CustomerRouter = Router();
 
-CustomerRouter.get("/review", CustomerController.review);
+CustomerRouter.get("/review", ValidateToken, CustomerController.review);
 
-CustomerRouter.get("/analytics", CustomerController.customerAnalytics)
+CustomerRouter.get("/analytics", ValidateToken, CustomerController.customerAnalytics)
 
-CustomerRouter.get("/free_trail", CustomerController.freeTrails)
+CustomerRouter.get("/free_trail",ValidateToken, CustomerController.freeTrails)
 
-CustomerRouter.get("/subscription", CustomerController.subscription)
+CustomerRouter.get("/subscription",ValidateToken, CustomerController.subscription)
 
 
 

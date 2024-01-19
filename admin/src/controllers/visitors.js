@@ -18,6 +18,7 @@ const moment = require('moment');
  * @param {string} month.query - month
  * @param {string} location.query - location
  * @param {string} city.query - city
+ * @security BearerAuth
  * @param {string} state.query - state
  * @param {string} today.query - today
  * @param {string} thisWeek.query - thisWeek

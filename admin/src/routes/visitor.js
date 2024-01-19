@@ -4,7 +4,7 @@ import { ValidateToken } from "../middleware/token";
 
 const VisitorRouter = Router();
 
-VisitorRouter.get("/", VisitorController.visitors);
+VisitorRouter.get("/", ValidateToken, VisitorController.visitors);
 
 
 

@@ -39,6 +39,7 @@ const getWeekNumber = (day) => {
  * @param {string} pageNumber.query - pageNumber
  * @param {string} month.query - month
  * @param {string} type.query - type
+ * @security BearerAuth
  * @param {string} location.query - location
  * @param {string} Subscription.query - Subscription
  * @param {string} free_trail.query - free_trail
@@ -268,6 +269,7 @@ const customerAnalytics = async (req,res) => {
    * GET /v1/customer/free_trail
    * @summary customer free trail data
    * @tags Customer
+   * @security BearerAuth
    * @param {string} pageLimit.query - pageLimit
    * @param {string} pageNumber.query - pageNumber
    * @param {string} month.query - month
@@ -422,6 +424,7 @@ const customerAnalytics = async (req,res) => {
  * @param {string} pageNumber.query - pageNumber
  * @param {string} month.query - month
  * @param {string} type.query - type
+ * @security BearerAuth
  * @param {string} location.query - location
  * @param {string} Subscription.query - Subscription
  * @param {string} free_trail.query - free_trail
@@ -632,6 +635,7 @@ const review = async (req, res) => {
  * GET /v1/customer/subscription
  * @summary customer subscription data 
  * @tags Customer
+ * @security BearerAuth
  * @param {string} pageLimit.query - pageLimit
  * @param {string} pageNumber.query - pageNumber
  * @param {string} month.query - month
