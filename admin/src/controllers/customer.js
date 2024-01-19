@@ -270,8 +270,8 @@ const customerAnalytics = async (req,res) => {
    * @summary customer free trail data
    * @tags Customer
    * @security BearerAuth
-   * @param {string} pageLimit.query - pageLimit
-   * @param {string} pageNumber.query - pageNumber
+   * @param {string} today.query - today
+   * @param {string} thisWeek.query - thisWeek
    * @param {string} month.query - month
    * @return {object} 200 - Success response - application/json
    */ 
@@ -281,8 +281,8 @@ const customerAnalytics = async (req,res) => {
     try { 
        
       const monthParam = req.query.month;
-      const pageLimitParam = req.query.pageLimit;
-      const pageNumberParam = req.query.pageNumber; 
+      const todayParam = req.query.today;
+      const thisWeekParam = req.query.thisWeek; 
     
       let month; 
         
@@ -293,16 +293,45 @@ const customerAnalytics = async (req,res) => {
         if (!month) {
             return res.status(400).json({ error: "Invalid month name" });
         }
-    } 
-     
-      // Validate pageLimit and pageNumber parameters or set default values
-    const pageLimit = parseInt(pageLimitParam) || 0;  
-    const pageNumber = parseInt(pageNumberParam) || 1;   
-  
+    }  
+
     const filter = {};
     if (month) {
         filter.signUpDate = { $regex: `/${month}/` };
     } 
+
+    if (todayParam) {
+      const today = new Date();
+      const formattedToday = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
+      console.log("Formatted Today:", formattedToday);
+
+      // Trim spaces and adjust the regex
+      filter.signUpDate = formattedToday.trim();
+      console.log("Filter for Today:", filter);
+    } 
+
+    if (thisWeekParam) {
+      const today = new Date();
+      const startOfWeek = new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay()); // Start of the week (Sunday)
+  
+     const formattedToday = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
+     console.log("Formatted Today:", formattedToday);
+
+
+      // Format start and end dates in "dd/mm/yyyy" format
+      const formattedStartOfWeek = `${startOfWeek.getDate().toString().padStart(2, '0')}/${(startOfWeek.getMonth() + 1).toString().padStart(2, '0')}/${startOfWeek.getFullYear()}`;
+
+  
+      console.log("Formatted Start of Week:", formattedStartOfWeek);
+  
+
+      filter.signUpDate = {
+        $gte: formattedStartOfWeek.trim(),
+        $lte: formattedToday.trim(),
+        $regex: `^\\d{2}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`
+    };
+      console.log("Filter for This Week:", filter);
+  }
   
      let totalFreeTrails;
      let cancelledFreeTrails;
@@ -310,31 +339,6 @@ const customerAnalytics = async (req,res) => {
      let convertedToSubscription; 
      let customers;
   
-     if(pageLimit >0 && pageNumber>0){
-       
-      const { offset, limit } = PaginationData.paginationData(pageLimit, pageNumber); 
-      totalFreeTrails = await Customer.countDocuments(filter) 
-  
-       cancelledFreeTrails = await Customer.countDocuments({
-          free_trail : "Cancelled",
-          ...filter
-       }) 
-  
-       activeFreeTrails = await Customer.countDocuments({
-        free_trail : "Completed",
-        ...filter
-     }) 
-  
-     convertedToSubscription = await Customer.countDocuments({
-      Subscription : "Not started",
-      ...filter
-   })  
-  
-   customers = await Customer.find(filter)
-   .skip(offset)
-   .limit(limit); 
-  
-  } else{ 
   
     totalFreeTrails = await Customer.countDocuments(filter) 
   
@@ -352,12 +356,27 @@ const customerAnalytics = async (req,res) => {
       Subscription : "Not started",
       ...filter
    })  
+
+    // Count cancellation reasons
+    const cancellationReasonCounts = await Customer.aggregate([
+      { $match: filter },
+      {
+          $group: {
+              _id: '$cancellation_reason',
+              count: { $sum: 1 }
+          }
+      },
+      {
+          $project: {
+              cancellation_reason: '$_id',
+              count: 1,
+              _id: 0
+          }
+      }
+  ]);
   
     customers = await Customer.find(filter);
-  }
-  
-  
-  
+ 
     var totalweeklycount = Array.from({ length: 4 }, (_, weekIndex) => ({
       week: weekIndex + 1,
       count: 0
@@ -367,6 +386,18 @@ const customerAnalytics = async (req,res) => {
       week: weekIndex + 1,
       count: 0
     }));    
+
+    var freeTrailExpired = Array.from({ length: 4 }, (_, weekIndex) => ({
+      week: weekIndex + 1,
+      count: 0
+    })); 
+
+    var freeTrailCancellation = Array.from({ length: 4 }, (_, weekIndex) => ({
+      week: weekIndex + 1,
+      count: 0
+    }));    
+  
+  
   
    
     customers.forEach(customer => {
@@ -381,6 +412,14 @@ const customerAnalytics = async (req,res) => {
       if (customer.Subscription=== "Not started" && weekNumber >= 1 && weekNumber <= 4) {
         convertedToSubscriptions[weekNumber - 1].count += 1;
       } 
+
+      if (customer.free_trail=== "Expired" && weekNumber >= 1 && weekNumber <= 4) {
+        freeTrailCancellation[weekNumber - 1].count += 1;
+      } 
+
+      if (customer.free_trail=== "Cancelled" && weekNumber >= 1 && weekNumber <= 4) {
+        freeTrailExpired[weekNumber - 1].count += 1;
+      } 
   
     })
   
@@ -391,13 +430,16 @@ const customerAnalytics = async (req,res) => {
         activeFreeTrails,
         convertedToSubscription,
         cancelledFreeTrails,
-        customers,
+        cancellationReasonCounts,
+       //  customers,
       } 
   
       if(month) {
         responseObj.weeklyCounts = {
           totalFreeTrailsWeeklyCounts: totalweeklycount,
-          convertedToSubscriptionWeeklyCount: convertedToSubscriptions 
+          convertedToSubscriptionWeeklyCount: convertedToSubscriptions, 
+          freeTrailCancellationWeeklyCount: freeTrailCancellation,
+          freeTrailExpiredWeeklyCount: freeTrailExpired,
              
     }  
       }
@@ -639,6 +681,8 @@ const review = async (req, res) => {
  * @param {string} pageLimit.query - pageLimit
  * @param {string} pageNumber.query - pageNumber
  * @param {string} month.query - month
+ * @param {string} today.query - today
+ * @param {string} thisWeek.query - thisWeek
  * @param {string} state.query - state
  * @param {string} type.query - type
  * @param {string} name.query - name
@@ -650,8 +694,10 @@ const review = async (req, res) => {
      try { 
 
       const monthParam = req.query.month;
+      const todayParam = req.query.today; // New query parameter for today
+      const thisWeekParam = req.query.thisWeek; 
       const pageLimitParam = req.query.pageLimit;
-      const pageNumberParam = req.query.pageNumber; 
+      const pageNumberParam = req.query.pageNumber;
       const  stateParam = req.query.state
       const  typeParam = req.query.type
 
@@ -674,6 +720,39 @@ const review = async (req, res) => {
     if (month) {
         filter.signUpDate = { $regex: `/${month}/` };
     }  
+
+    if (todayParam) {
+      const today = new Date();
+      const formattedToday = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
+      console.log("Formatted Today:", formattedToday);
+
+      // Trim spaces and adjust the regex
+      filter.signUpDate = formattedToday.trim();
+      console.log("Filter for Today:", filter);
+    } 
+
+    if (thisWeekParam) {
+      const today = new Date();
+      const startOfWeek = new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay()); // Start of the week (Sunday)
+  
+     const formattedToday = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
+     console.log("Formatted Today:", formattedToday);
+
+
+      // Format start and end dates in "dd/mm/yyyy" format
+      const formattedStartOfWeek = `${startOfWeek.getDate().toString().padStart(2, '0')}/${(startOfWeek.getMonth() + 1).toString().padStart(2, '0')}/${startOfWeek.getFullYear()}`;
+
+  
+      console.log("Formatted Start of Week:", formattedStartOfWeek);
+  
+
+      filter.signUpDate = {
+        $gte: formattedStartOfWeek.trim(),
+        $lte: formattedToday.trim(),
+        $regex: `^\\d{2}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`
+    };
+      console.log("Filter for This Week:", filter);
+  }
 
  if (stateParam) {
       filter.state = stateParam;

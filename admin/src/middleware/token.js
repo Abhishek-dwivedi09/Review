@@ -49,7 +49,7 @@ export const ValidateToken = async (req, res, next) => {
   try {
     const tokenData = VerifyJWT(token, process.env.JWT_SECRET);
 
-    console.log("Decoded Token:", tokenData);
+  //  console.log("Decoded Token:", tokenData);
 
     const currentUser = await Admin.findOne({
       _id: tokenData.id,
@@ -57,14 +57,14 @@ export const ValidateToken = async (req, res, next) => {
     }); 
 
     const userId = tokenData.id;
-    console.log("User ID from Token:", userId);
+   // console.log("User ID from Token:", userId);
 
     // Log additional information
-    console.log("Token Expiry Time:", new Date(tokenData.exp * 1000));
-    console.log("Current Timestamp:", new Date());
+  //  console.log("Token Expiry Time:", new Date(tokenData.exp * 1000));
+   // console.log("Current Timestamp:", new Date());
 
 
-    console.log("Current User:", currentUser);
+  //  console.log("Current User:", currentUser);
 
     if (!currentUser) {
       return res.status(401).json({
@@ -75,7 +75,7 @@ export const ValidateToken = async (req, res, next) => {
     req.currentUser = currentUser;
     next();
   } catch (error) {
-    console.log("Error:", error);
+  //  console.log("Error:", error);
     return res.status(401).json({
       code: "NOT_AUTHORISED",
       message: "Your login session has been expired, Please login again.",

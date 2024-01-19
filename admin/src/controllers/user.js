@@ -1,56 +1,16 @@
 import { Console } from "winston/lib/winston/transports";
 import { User } from "../models" 
 const mongoose = require('mongoose');
-const nodemailer = require('nodemailer'); 
+const nodemailer = require('nodemailer');
+const sgMail = require('@sendgrid/mail') 
 import { PaginationData } from "../common";
 
-require('dotenv').config();
+require('dotenv').config(); 
 
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
- 
+console.log(process.env.SENDGRID_API_KEY)
 
-//   const transporter = nodemailer.createTransport({
-//     service: 'gmail',
-//     auth: {
-//       user: process.env.EMAIL_USER, // Use an environment variable for email
-//       pass: process.env.EMAIL_PASSWORD, // Use an environment variable for password
-//     },
-//   }); 
-
-//   // Function to send an invitation email
-// async function sendInvitationEmail(userEmail, role) {
-//     let subject = '';
-  
-//     // Set subject based on the role
-//     switch (role) {
-//       case 'admin':
-//         subject = 'Invitation to Admin Portal';
-//         break;
-//       case 'superadmin':
-//         subject = 'Invitation to Super Admin Portal';
-//         break;
-//       case 'manager':
-//         subject = 'Invitation to Manager Portal';
-//         break;
-//       // Add more cases if needed
-  
-//       default:
-//         subject = 'Invitation to the Portal';
-//     } 
-
-//     const mailOptions = {
-//         from: process.env.EMAIL_USER,
-//         to: userEmail,
-//         subject: subject,
-//         text: `Hi! You are being invited to the ${role} portal. Click the link to sign up and set your password.`,
-//         // You can include a link to your frontend registration page here
-//       };
-    
-//       await transporter.sendMail(mailOptions);
-// } 
-
-// @security BearerAuth
-  
 
 /**
  * @typedef {object} user
@@ -141,12 +101,53 @@ const user = async (req,res) =>{
 
         const savedUser = await newUser.save() 
 
+        // Send email notification
+        sendInvitationEmail(newUser.email, newUser.role);
+     
+        console.log(sendInvitationEmail)
+
         res.status(200).send(savedUser);
     
       } catch (error) {
         res.status(500).json({ error: error.message });
       }
 }  
+
+// Function to send an invitation email
+async function sendInvitationEmail(userEmail, role) {
+    try {
+        let subject = '';
+
+        switch (role) {
+            case 'admin':
+                subject = 'Invitation to Admin Portal';
+                break;
+            case 'super admin':
+                subject = 'Invitation to Super Admin Portal';
+                break;
+            case 'manager':
+                subject = 'Invitation to Manager Portal';
+                break;
+            default:
+                subject = 'Invitation to the Portal';
+        }
+
+        const msg = {
+            to: userEmail,
+            from: process.env.SENDGRID_SENDER_EMAIL,
+            subject: subject,
+            text: `Hi! You are being invited to the ${role} portal. Click the link to sign up and set your password.`,
+        };
+
+        console.log(msg);
+
+        await sgMail.send(msg);
+        console.log('Email sent...');
+    } catch (error) {
+        console.error('Error sending email:', error);
+        throw error;
+    }
+}
 
 /**
  * @typedef {object} userDetails

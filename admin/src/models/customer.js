@@ -44,13 +44,16 @@ const CustomerSchema = new mongoose.Schema({
   Reviews_before : {
     type: Schema.Types.Number
    },
-   Reviews_after : {
+  Reviews_after : {
     type: Schema.Types.Number
-   },
+   }, 
    rating : {
     type: Schema.Types.Number
    },
   Status: {
+    type: Schema.Types.String,
+  },
+  cancellation_reason: {
     type: Schema.Types.String,
   },
   signUpDate: {
