@@ -1,15 +1,12 @@
-import { Console } from "winston/lib/winston/transports";
+
 import { User } from "../models" 
+import {Support} from "../models"
 const mongoose = require('mongoose');
 const nodemailer = require('nodemailer');
 const sgMail = require('@sendgrid/mail') 
 import { PaginationData } from "../common";
 
 require('dotenv').config(); 
-
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-
-console.log(process.env.SENDGRID_API_KEY)
 
 
 /**
@@ -130,19 +127,33 @@ async function sendInvitationEmail(userEmail, role) {
                 break;
             default:
                 subject = 'Invitation to the Portal';
-        }
+        }   
 
-        const msg = {
-            to: userEmail,
-            from: process.env.SENDGRID_SENDER_EMAIL,
-            subject: subject,
-            text: `Hi! You are being invited to the ${role} portal. Click the link to sign up and set your password.`,
+        const transporter = nodemailer.createTransport({
+          service: 'gmail',
+          auth: {
+            user: process.env.GMAIL,
+            pass: process.env.PASS,
+          },
+        });
+        
+        // Define the email options
+        const mailOptions = {
+          from: process.env.GMAIL,
+          to: userEmail,
+          subject: 'Subject of the Email',
+          text: `Hi! You are being invited to the ${role} portal. Click the link to sign up and set your password.`,
         };
 
-        console.log(msg);
+         // Send the email
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      console.error('Error sending email:', error);
+    } else {
+      console.log('Email sent:', info.response);
+    }
+  });
 
-        await sgMail.send(msg);
-        console.log('Email sent...');
     } catch (error) {
         console.error('Error sending email:', error);
         throw error;
@@ -414,8 +425,191 @@ userToUpdate.status = "suspended";
  catch (error) {
   res.status(500).json({ error: error.message });
 }
-};
+}; 
 
+/**
+ * @typedef {object} support 
+ */
+
+
+/**
+ * GET /v1/user/support
+ * @summary user support 
+ * @tags User 
+ * @security BearerAuth
+ * @param {string} pageLimit.query - pageLimit
+ * @param {string} pageNumber.query - pageNumber
+ * @param {string} name.query - name
+ * @param {string} status.query - status
+ * @return {object} 200 - Success response - application/json
+ */  
+
+
+const support = async (req,res) => {
+   
+  try { 
+      const nameParam = req.query.name;
+      const statusParam = req.query.status; 
+        const pageLimitParam = req.query.pageLimit;
+        const pageNumberParam = req.query.pageNumber;
+
+      const filter = {};
+      if (nameParam) {
+          filter.name = nameParam;
+        } 
+    
+        if (statusParam) {
+         // filter.status = statusParam;
+          let statuses; 
+
+          statuses = JSON.parse(statusParam);
+      
+          const trimmedStatues = statuses.map(status => status.trim());
+          filter.status = { $in: trimmedStatues };
+         
+        } 
+
+        let supportRequest;
+        let open;
+        let closed;
+        let invalidRequest;
+        let data; 
+
+        const pageLimit = parseInt(pageLimitParam) || 0;
+        const pageNumber = parseInt(pageNumberParam) || 1;
+ 
+        if (pageLimit > 0 && pageNumber > 0) {
+          const { offset, limit } = PaginationData.paginationData(
+            pageLimit,
+            pageNumber
+          ); 
+          supportRequest = await Support.countDocuments(filter);
+
+          open = await Support.countDocuments({
+            status: 'open',
+            ...filter
+          })
+
+          closed = await Support.countDocuments({
+            status: 'closed',
+            ...filter
+          })
+
+          invalidRequest = await Support.countDocuments({
+            status: 'invalid request',
+            ...filter
+          }) 
+
+          data = await Support.find(filter)
+            .skip(offset)
+            .limit(limit);
+          } else { 
+
+            supportRequest = await Support.countDocuments(filter);
+
+            open = await Support.countDocuments({
+              status: 'open',
+              ...filter
+            })
+  
+            closed = await Support.countDocuments({
+              status: 'closed',
+              ...filter
+            })
+  
+            invalidRequest = await Support.countDocuments({
+              status: 'invalid request',
+              ...filter
+            }) 
+  
+            data = await Support.find(filter)
+          } 
+
+          const responseObj = {
+            supportRequest,
+            open,
+            closed,
+            invalidRequest,
+            data,
+          } 
+
+          return res.status(200).json(responseObj)
+
+  } catch (error) {
+    return res.status(500).json({ error: error.message });   
+  }
+}
+ 
+
+/**
+ * @typedef {object} updateSupport
+*/
+
+/**
+ * PUT /v1/user/support/update-closed/{_id}
+ * @summary update support status close
+ * @tags User
+ * @security BearerAuth
+ * @param {string} _id.path.required - _id(ObjectId)
+ * @return {object} 200 - Success response - application/json
+ */
+
+const updateSupport = async (req,res) =>{
+  try{
+   const {_id} = req.params;
+
+   const userToUpdate = await Support.findById(_id);
+
+if(!userToUpdate){
+ res.status(200).json({error : "user not found"});
+} 
+
+userToUpdate.status = "closed";
+ // Save the updated user
+ const updatedUser = await userToUpdate.save();
+
+ res.status(200).json(updatedUser);
+  }
+   
+catch (error) {
+ res.status(500).json({ error: error.message });
+}
+};  
+
+/**
+ * @typedef {object} updateSupports
+*/
+
+/**
+ * PUT /v1/user/support/update-invalid/{_id}
+ * @summary update support status invalid request
+ * @tags User
+ * @security BearerAuth
+ * @param {string} _id.path.required - _id(ObjectId)
+ * @return {object} 200 - Success response - application/json
+ */
+
+const updateSupports = async (req,res) =>{
+  try{
+   const {_id} = req.params;
+
+   const userToUpdate = await Support.findById(_id);
+
+if(!userToUpdate){
+ res.status(200).json({error : "user not found"});
+} 
+
+userToUpdate.status = "invalid request";
+ // Save the updated user
+ const updatedUser = await userToUpdate.save();
+
+ res.status(200).json(updatedUser);
+  }
+   
+catch (error) {
+ res.status(500).json({ error: error.message });
+}
+}; 
 
 
 export default {
@@ -423,4 +617,8 @@ export default {
     userDetails,
     editUser,
     updateStatus,
+    support,
+    updateSupport,
+    updateSupports,
+
   };
