@@ -447,97 +447,174 @@ userToUpdate.status = "suspended";
 
 const support = async (req,res) => {
    
-  try { 
-      const nameParam = req.query.name;
-      const statusParam = req.query.status; 
-        const pageLimitParam = req.query.pageLimit;
-        const pageNumberParam = req.query.pageNumber;
+  // try { 
+  //     const nameParam = req.query.name;
+  //     const statusParam = req.query.status; 
+  //       const pageLimitParam = req.query.pageLimit;
+  //       const pageNumberParam = req.query.pageNumber;
 
-      const filter = {};
-      if (nameParam) {
-          filter.name = nameParam;
-        } 
+  //     const filter = {};
+  //     if (nameParam) {
+  //         filter.name = nameParam;
+  //       } 
     
-        if (statusParam) {
-         // filter.status = statusParam;
-          let statuses; 
+  //       if (statusParam) {
+  //         let statuses; 
 
-          statuses = JSON.parse(statusParam);
+  //         statuses = JSON.parse(statusParam);
       
-          const trimmedStatues = statuses.map(status => status.trim());
-          filter.status = { $in: trimmedStatues };
+  //         const trimmedStatues = statuses.map(status => status.trim());
+  //         filter.status = { $in: trimmedStatues };
          
-        } 
+  //       }  
 
-        let supportRequest;
-        let open;
-        let closed;
-        let invalidRequest;
-        let data; 
 
-        const pageLimit = parseInt(pageLimitParam) || 0;
-        const pageNumber = parseInt(pageNumberParam) || 1;
+  //       let supportRequest;
+  //       let open;
+  //       let closed;
+  //       let invalidRequest;
+  //       let data; 
+
+  //       const pageLimit = parseInt(pageLimitParam) || 0;
+  //       const pageNumber = parseInt(pageNumberParam) || 1;
  
-        if (pageLimit > 0 && pageNumber > 0) {
-          const { offset, limit } = PaginationData.paginationData(
-            pageLimit,
-            pageNumber
-          ); 
-          supportRequest = await Support.countDocuments(filter);
+  //       if (pageLimit > 0 && pageNumber > 0) {
+  //         const { offset, limit } = PaginationData.paginationData(
+  //           pageLimit,
+  //           pageNumber
+  //         ); 
+  //         supportRequest = await Support.countDocuments(filter);
 
-          open = await Support.countDocuments({
-            status: 'open',
-            ...filter
-          })
+  //         open = await Support.countDocuments({
+  //           status: 'open',
+  //           ...filter
+  //         })
 
-          closed = await Support.countDocuments({
-            status: 'closed',
-            ...filter
-          })
+  //         closed = await Support.countDocuments({
+  //           status: 'closed',
+  //           ...filter
+  //         })
 
-          invalidRequest = await Support.countDocuments({
-            status: 'invalid request',
-            ...filter
-          }) 
+  //         invalidRequest = await Support.countDocuments({
+  //           status: 'invalid request',
+  //           ...filter
+  //         }) 
 
-          data = await Support.find(filter)
-            .skip(offset)
-            .limit(limit);
-          } else { 
+  //         data = await Support.find(filter)
+  //           .skip(offset)
+  //           .limit(limit);
+  //         } else { 
 
-            supportRequest = await Support.countDocuments(filter);
+  //           supportRequest = await Support.countDocuments(filter);
 
-            open = await Support.countDocuments({
-              status: 'open',
-              ...filter
-            })
+  //           open = await Support.countDocuments({
+  //             status: 'open',
+  //             ...filter
+  //           })
   
-            closed = await Support.countDocuments({
-              status: 'closed',
-              ...filter
-            })
+  //           closed = await Support.countDocuments({
+  //             status: 'closed',
+  //             ...filter
+  //           })
   
-            invalidRequest = await Support.countDocuments({
-              status: 'invalid request',
-              ...filter
-            }) 
+  //           invalidRequest = await Support.countDocuments({
+  //             status: 'invalid request',
+  //             ...filter
+  //           }) 
   
-            data = await Support.find(filter)
-          } 
+  //           data = await Support.find(filter)
+  //         } 
 
-          const responseObj = {
-            supportRequest,
-            open,
-            closed,
-            invalidRequest,
-            data,
-          } 
+  //         const responseObj = {
+  //           supportRequest,
+  //           open,
+  //           closed,
+  //           invalidRequest,
+  //           data,
+  //         }  
+  //         return res.status(200).json(responseObj)
 
-          return res.status(200).json(responseObj)
+  // } catch (error) {
+  //   return res.status(500).json({ error: error.message });   
+  // }  
 
+  try {
+    const nameParam = req.query.name;
+    const statusParam = req.query.status;
+    const pageLimitParam = req.query.pageLimit;
+    const pageNumberParam = req.query.pageNumber;
+  
+    const filter = {};
+    if (nameParam) {
+      filter.name = nameParam;
+    }
+  
+    let originalOpenCount;
+    let originalClosedCount;
+    let originalInvalidCount;
+  
+    // Count open requests without status filter
+    originalOpenCount = await Support.countDocuments({ status: 'open', ...filter });
+  
+    // Count closed requests without status filter
+    originalClosedCount = await Support.countDocuments({ status: 'closed', ...filter });
+  
+    // Count invalid requests without status filter
+    originalInvalidCount = await Support.countDocuments({ status: 'invalid', ...filter });
+  
+    let supportRequest;
+    let open;
+    let closed;
+    let invalidRequest;
+    let data;
+  
+    const pageLimit = parseInt(pageLimitParam) || 0;
+    const pageNumber = parseInt(pageNumberParam) || 1;
+  
+    // Count all support requests without status filter
+    supportRequest = await Support.countDocuments(filter);
+  
+    if (statusParam) {
+      try {
+        let statuses = JSON.parse(statusParam);
+        const trimmedStatuses = statuses.map(status => status.trim());
+  
+        if (trimmedStatuses.length > 0) {
+          // Retrieve data based on status filter
+          data = await Support.find({ status: { $in: trimmedStatuses }, ...filter });
+        }
+      } catch (error) {
+        return res.status(400).json({ error: "Invalid status parameter format" });
+      }
+    } else {
+      // No status filter, retrieve all data
+      if (pageLimit > 0 && pageNumber > 0) {
+        const { offset, limit } = PaginationData.paginationData(pageLimit, pageNumber);
+  
+        data = await Support.find(filter).skip(offset).limit(limit);
+      } else {
+        data = await Support.find(filter);
+      }
+    }
+  
+    // Use the original counts instead of counting again
+    open = originalOpenCount;
+    closed = originalClosedCount;
+    invalidRequest = originalInvalidCount;
+  
+    const responseObj = {
+      supportRequest,
+      open,
+      closed,
+      invalidRequest,
+      data,
+    };
+  
+    return res.status(200).json(responseObj);
   } catch (error) {
-    return res.status(500).json({ error: error.message });   
+    return res.status(500).json({ error: error.message });
   }
+  
 }
  
 
@@ -546,17 +623,19 @@ const support = async (req,res) => {
 */
 
 /**
- * PUT /v1/user/support/update-closed/{_id}
- * @summary update support status close
+ * PUT /v1/user/support/update/{_id}
+ * @summary update status of user support
  * @tags User
  * @security BearerAuth
  * @param {string} _id.path.required - _id(ObjectId)
+ * @param {string} status.query - status
  * @return {object} 200 - Success response - application/json
  */
 
 const updateSupport = async (req,res) =>{
   try{
    const {_id} = req.params;
+   const statusParam = req.query.status;
 
    const userToUpdate = await Support.findById(_id);
 
@@ -564,7 +643,7 @@ if(!userToUpdate){
  res.status(200).json({error : "user not found"});
 } 
 
-userToUpdate.status = "closed";
+userToUpdate.status = statusParam;
  // Save the updated user
  const updatedUser = await userToUpdate.save();
 
@@ -576,40 +655,7 @@ catch (error) {
 }
 };  
 
-/**
- * @typedef {object} updateSupports
-*/
 
-/**
- * PUT /v1/user/support/update-invalid/{_id}
- * @summary update support status invalid request
- * @tags User
- * @security BearerAuth
- * @param {string} _id.path.required - _id(ObjectId)
- * @return {object} 200 - Success response - application/json
- */
-
-const updateSupports = async (req,res) =>{
-  try{
-   const {_id} = req.params;
-
-   const userToUpdate = await Support.findById(_id);
-
-if(!userToUpdate){
- res.status(200).json({error : "user not found"});
-} 
-
-userToUpdate.status = "invalid request";
- // Save the updated user
- const updatedUser = await userToUpdate.save();
-
- res.status(200).json(updatedUser);
-  }
-   
-catch (error) {
- res.status(500).json({ error: error.message });
-}
-}; 
 
 
 export default {
@@ -619,6 +665,5 @@ export default {
     updateStatus,
     support,
     updateSupport,
-    updateSupports,
 
   };

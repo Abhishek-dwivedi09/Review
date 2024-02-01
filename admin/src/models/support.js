@@ -10,16 +10,24 @@ const supportSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    Date: {
+    issue: {
         type: String,
         required: true
-    },
-    issueTitel: {
+    }, 
+    requestNo: {
+        type: Number,
+        required: true
+    }, 
+    description: {
         type: String,
         required: true
-    },     
+    },           
     status: {
         type: String,
+    },
+    date: {
+        type: String,
+        required: true
     },
 
 }); 

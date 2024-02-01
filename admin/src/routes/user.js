@@ -37,16 +37,11 @@ UserRouter.get(
   ) 
 
   UserRouter.put(
-    "/support/update-closed/:_id",
+    "/support/update/:_id",
     ValidateToken,
     UserController.updateSupport
   ) 
 
-  UserRouter.put(
-    "/support/update-invalid/:_id",
-    ValidateToken,
-    UserController.updateSupports
-  )
   
 
 
