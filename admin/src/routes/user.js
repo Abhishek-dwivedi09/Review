@@ -42,6 +42,18 @@ UserRouter.get(
     UserController.updateSupport
   ) 
 
+  UserRouter.get(
+    "/support-details/:_id",
+    ValidateToken,
+    UserController.supportDetails
+  ) 
+
+  UserRouter.post(
+    "/send-reply/:supportId",
+    ValidateToken,
+    UserController.reply
+  ) 
+
   
 
 

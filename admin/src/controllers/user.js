@@ -653,8 +653,105 @@ userToUpdate.status = statusParam;
 catch (error) {
  res.status(500).json({ error: error.message });
 }
-};  
+};    
 
+
+/**
+ * @typedef {object} supportDetails
+*/
+
+/**
+ * GET /v1/user/support-details/{_id}
+ * @summary support details by indiviual users
+ * @tags User
+ * @security BearerAuth
+ * @param {string} _id.path.required - _id(ObjectId)
+ * @return {object} 200 - Success response - application/json
+ */
+
+const supportDetails = async (req,res) =>{
+  try{
+   const {_id} = req.params;
+
+   const userData = await Support.findById(_id);
+
+if(!userData){
+ res.status(200).json({error : "user not found"});
+} 
+
+// userToUpdate.status = statusParam;
+//  // Save the updated user
+//  const updatedUser = await userToUpdate.save();
+
+ res.status(200).json(userData);
+  }
+   
+catch (error) {
+ res.status(500).json({ error: error.message });
+}
+};   
+
+async function sendEmail(to, subject, text) {
+  const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+          user: process.env.GMAIL,
+          pass: process.env.PASS
+      }
+  });
+
+  const mailOptions = {
+      from: process.env.GMAIL,
+      to,
+      subject,
+      text
+  };
+
+  await transporter.sendMail(mailOptions);
+}
+
+
+/**
+ * @typedef {object} reply
+ * @property {string} reply - reply
+
+*/
+
+/**
+ * POST /v1/user/send-reply/{supportId}
+ * @summary support details by indiviual users
+ * @tags User
+ * @security BearerAuth
+ * @param {string} supportId.path.required - supportId(ObjectId)
+ * @param {reply} request.body.required - reply
+ * @return {object} 200 - Success response - application/json
+ */
+
+const reply = async (req, res) => {
+  try {
+    const { supportId } = req.params;
+    const { reply } = req.body;
+
+    // Fetch the email by supportId
+    const support = await Support.findById(supportId);
+
+    if (!support) {
+        throw new Error('Support request not found');
+    }
+
+    // Extract email from the support document
+    const email = support.email;
+
+    // Send the reply email
+    await sendEmail(email, 'Reply to Your Support Request', reply);
+
+    // Respond to the API request
+    res.status(200).json({ message: 'Reply email sent successfully' });
+} catch (error) {
+    console.error('Error sending reply email:', error.message);
+    res.status(500).json({ error: 'Internal Server Error' });
+}
+};
 
 
 
@@ -665,5 +762,7 @@ export default {
     updateStatus,
     support,
     updateSupport,
+    supportDetails,
+    reply,
 
   };
