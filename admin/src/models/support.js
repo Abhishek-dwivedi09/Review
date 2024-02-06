@@ -2,11 +2,11 @@ const mongoose = require('mongoose');
 import { Schema, model } from "mongoose"
 
 const supportSchema = new mongoose.Schema({
-    name: {
+    firstName: {
         type: String,
         required: true
     },
-    phone: {
+    lastName: {
         type: String,
         required: true
     },

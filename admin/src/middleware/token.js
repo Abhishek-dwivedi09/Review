@@ -49,22 +49,18 @@ export const ValidateToken = async (req, res, next) => {
   try {
     const tokenData = VerifyJWT(token, process.env.JWT_SECRET);
 
-  //  console.log("Decoded Token:", tokenData);
+
 
     const currentUser = await Admin.findOne({
       _id: tokenData.id,
-      // fcmToken: tokenData.fcmToken
     }); 
 
     const userId = tokenData.id;
-   // console.log("User ID from Token:", userId);
-
-    // Log additional information
-  //  console.log("Token Expiry Time:", new Date(tokenData.exp * 1000));
-   // console.log("Current Timestamp:", new Date());
+    console.log("User ID from Token:", userId);
 
 
-  //  console.log("Current User:", currentUser);
+
+    console.log("Current User:", currentUser);
 
     if (!currentUser) {
       return res.status(401).json({
@@ -79,6 +75,41 @@ export const ValidateToken = async (req, res, next) => {
     return res.status(401).json({
       code: "NOT_AUTHORISED",
       message: "Your login session has been expired, Please login again.",
+    });
+  }
+}; 
+
+// Middleware to validate token and retrieve admin details
+export const ValidateTokenAndRetrieveAdminDetails = async (req, res, next) => {
+  const token = req.headers["authorization"]
+    ? req.headers["authorization"].replace("Bearer ", "").trim()
+    : "";
+
+  if (!token) {
+    return res.status(401).json({
+      code: "NOT_AUTHORISED",
+      message: "Unauthorized, Please provide authentication token!",
+    });
+  }
+
+  try {
+    const tokenData = VerifyJWT(token, process.env.JWT_SECRET);
+
+    const adminDetails = await Admin.findOne({ _id: tokenData.id });
+
+    if (!adminDetails) {
+      return res.status(401).json({
+        code: "NOT_AUTHORISED",
+        message: "Unauthorized, Admin details not found!",
+      });
+    }
+
+    req.adminDetails = adminDetails;
+    next();
+  } catch (error) {
+    return res.status(401).json({
+      code: "NOT_AUTHORISED",
+      message: "Your login session has expired, Please login again.",
     });
   }
 };

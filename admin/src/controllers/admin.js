@@ -136,8 +136,128 @@ const forgotPassword = async (req, res) => {
   }
 };   
 
+/**
+ * @typedef {object} profileUpdate
+ * @property {string} firstName - firstName
+ * @property {string} lastName - lastName
+ * @property {string} email - email
+ * @property {string} pass - pass
+
+*/
+
+/**
+ * PUT /v1/admin/profile-update
+ * @summary update admin profile 
+ * @tags Admin
+ * @security BearerAuth
+ * @param {profileUpdate} request.body.required
+ * @return {object} 200 - Success response - application/json
+ */
+
+const profileUpdate = async (req,res) =>{
+  try{
+    const { _id } = req.currentUser;
+    console.log("token data", _id)
+   const { firstName, lastName, email, phone } = req.body;
+
+
+   const userToUpdate = await Admin.findById(_id);
+
+if(!userToUpdate){
+ res.status(200).json({error : "user not found"});
+} 
+
+userToUpdate.firstName = firstName;
+userToUpdate.lastName = lastName;
+userToUpdate.email = email;
+userToUpdate.phone = phone;
+
+ // Save the updated user
+ const updatedUser = await userToUpdate.save();
+
+ return res.status(200).json(updatedUser);
+  }
+   
+catch (error) {
+ res.status(500).json({ error: error.message });
+}
+};    
+
+
+/**
+ * @typedef {object} changePass
+ * @property {string} oldPassword - oldPassword
+ * @property {string} newPassword - newPassword
+ * @property {string} confirmNewPassword - confirmNewPassword
+
+*/
+
+/**
+ * PUT /v1/admin/change-password
+ * @summary update password 
+ * @tags Admin
+ * @security BearerAuth
+ * @param {changePass} request.body.required
+ * @return {object} 200 - Success response - application/json
+ */
+ 
+const changePass =  async (req,res)=>{
+
+  try {
+    const { _id } = req.currentUser;
+    const { oldPassword, newPassword, confirmNewPassword } = req.body;
+    // Validate if new password matches the confirmation
+    if (newPassword !== confirmNewPassword) {
+        return res.status(400).json({ error: 'New password and confirmation do not match' });
+    }
+
+    const user = await Admin.findById(_id);
+
+    if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (oldPassword !== user.password) {
+        return res.status(401).json({ error: 'Invalid old password' });
+    }
+
+    user.password = newPassword;
+
+    // Save the updated user
+    await user.save();
+
+    res.status(200).json({ message: 'Password changed successfully' });
+} catch (error) {
+    res.status(500).json({ error: error.message });
+}
+}  
+
+/**
+ * @typedef {object} adminDetails
+ */
+
+
+/**
+ * GET /v1/admin/token-details
+ * @summary admin token details 
+ * @tags Admin
+ * @security BearerAuth
+ * @return {object} 200 - Success response - application/json
+ */  
+
+const adminDetails = async (req,res) =>{
+  try {
+    const adminDetails = req.adminDetails;
+    res.status(200).json([adminDetails]); // Returning admin details in an array format
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
 
   export default {
     login,
     forgotPassword,
+    profileUpdate,
+    changePass,
+    adminDetails,
   }

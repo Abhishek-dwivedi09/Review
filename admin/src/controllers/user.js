@@ -751,7 +751,8 @@ const reply = async (req, res) => {
     console.error('Error sending reply email:', error.message);
     res.status(500).json({ error: 'Internal Server Error' });
 }
-};
+}; 
+
 
 
 
@@ -764,5 +765,4 @@ export default {
     updateSupport,
     supportDetails,
     reply,
-
   };

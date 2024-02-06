@@ -11,7 +11,7 @@ const AdminSchema = new mongoose.Schema({
   email: {
     type: Schema.Types.String,
   },
-  phoneNumber: {
+  phone: {
     type: Schema.Types.String,
   },
   state: {
