@@ -141,7 +141,7 @@ const forgotPassword = async (req, res) => {
  * @property {string} firstName - firstName
  * @property {string} lastName - lastName
  * @property {string} email - email
- * @property {string} pass - pass
+ * @property {string} phone - phone
 
 */
 
@@ -218,7 +218,7 @@ const changePass =  async (req,res)=>{
     }
 
     if (oldPassword !== user.password) {
-        return res.status(401).json({ error: 'Invalid old password' });
+        return res.status(404).json({ error: 'Invalid old password' });
     }
 
     user.password = newPassword;
