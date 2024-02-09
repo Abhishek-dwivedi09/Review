@@ -56,109 +56,222 @@ function updatePermissions(dataObjects, selectedPermissionsString) {
     }
   }
 
-const user = async (req,res) =>{ 
+// const user = async (req,res) =>{ 
 
-    try {  
+//     try {  
 
-        const { firstName, lastName, phone, role, email, permissions } = req.body; 
+//         const { firstName, lastName, phone, role, email, permissions } = req.body; 
 
-         const status = req.body.status || 'active'
+//          const status = req.body.status || 'active'
 
-    //   const fileData = req.file; 
-     //  console.log(fileData);
-        console.log("req.body data", req.body)
+//     //   const fileData = req.file; 
+//      //  console.log(fileData);
+//         console.log("req.body data", req.body)
     
-        if (!permissions) {
-            return res.status(400).json({ error: 'objectId and permissions are required in the request body' });
-          } 
+//         if (!permissions) {
+//             return res.status(400).json({ error: 'objectId and permissions are required in the request body' });
+//           } 
 
-        if (!firstName || !lastName || !phone || !role || !email ) {
-          return res.status(400).json({ error: 'Missing required fields.' });
-        } 
-         const emails = await User.findOne({email});
-         if(emails){
-            return res.status(400).json({error: "email alredy exist"});
-         }
+//         if (!firstName || !lastName || !phone || !role || !email ) {
+//           return res.status(400).json({ error: 'Missing required fields.' });
+//         } 
+//          const emails = await User.findOne({email});
+//          if(emails){
+//             return res.status(400).json({error: "email alredy exist"});
+//          }
         
+//          const dummyPassword = generateDummyPassword();
       
-        const newUser = new User({
+//         const newUser = new User({
+//           firstName,
+//           lastName,
+//           phone,
+//           role,
+//           email,
+//           status,
+//           temporaryPassword: dummyPassword,
+//          // userImage: fileData ? fileData.location : null,
+//         }); 
+      
+//     newUser.permissions = updatePermissions(newUser.permissions, permissions);
+
+//     console.log("updated permissions", newUser.permissions);
+
+
+//         const savedUser = await newUser.save() 
+
+//         // Send email notification
+//         sendInvitationEmail(newUser.email, newUser.role);
+     
+//         console.log(sendInvitationEmail)
+
+//         res.status(200).send(savedUser);
+    
+//       } catch (error) {
+//         res.status(500).json({ error: error.message });
+//       }
+// }  
+
+// // Function to send an invitation email
+// async function sendInvitationEmail(userEmail, role) {
+//     try { 
+
+//       const dummyPassword = generateDummyPassword(); 
+//         let subject = '';
+
+//         switch (role) {
+//             case 'admin':
+//                 subject = 'Invitation to Admin Portal';
+//                 break;
+//             case 'super admin':
+//                 subject = 'Invitation to Super Admin Portal';
+//                 break;
+//             case 'manager':
+//                 subject = 'Invitation to Manager Portal';
+//                 break;
+//             default:
+//                 subject = 'Invitation to the Portal';
+//         }   
+
+//         const transporter = nodemailer.createTransport({
+//           service: 'gmail',
+//           auth: {
+//             user: process.env.GMAIL,
+//             pass: process.env.PASS,
+//           },
+//         });
+        
+//         // Define the email options
+//         const mailOptions = {
+//           from: process.env.GMAIL,
+//           to: userEmail,
+//           subject: 'Subject of the Email',
+//          // text: `Hi! You are being invited to the ${role} portal. Click the link to sign up and set your password.`, 
+//          text: `Hi! You are being invited to the ${role} portal. Your temporary password is: ${dummyPassword}. Click the link to sign up and set your password.`,
+//         };
+
+//          // Send the email
+//   transporter.sendMail(mailOptions, (error, info) => {
+//     if (error) {
+//       console.error('Error sending email:', error);
+//     } else {
+//       console.log('Email sent:', info.response);
+//     }
+//   }); 
+//   return dummyPassword;
+
+//     } catch (error) {
+//         console.error('Error sending email:', error);
+//         throw error;
+//     }
+// }  
+
+// function generateDummyPassword() {
+//   // You can generate a random password according to your requirements
+//   // For example, using a library like 'randomatic'
+//   // Here's a simple example generating a 6-character alphanumeric password
+//   return Math.random().toString(36).slice(-6);
+// } 
+
+const user = async (req, res) => {
+  try {
+      const { firstName, lastName, phone, role, email, permissions } = req.body;
+      const status = req.body.status || 'active';
+
+      if (!permissions) {
+          return res.status(400).json({ error: 'objectId and permissions are required in the request body' });
+      }
+
+      if (!firstName || !lastName || !phone || !role || !email) {
+          return res.status(400).json({ error: 'Missing required fields.' });
+      }
+
+      const existingUser = await User.findOne({ email });
+      if (existingUser) {
+          return res.status(400).json({ error: "Email already exists" });
+      }
+
+      // Generate dummy password
+      const dummyPassword = generateDummyPassword();
+
+      const newUser = new User({
           firstName,
           lastName,
           phone,
           role,
           email,
           status,
-         // userImage: fileData ? fileData.location : null,
-        }); 
-      
-    newUser.permissions = updatePermissions(newUser.permissions, permissions);
+          temporaryPassword: dummyPassword,
+      });
 
-    console.log("updated permissions", newUser.permissions);
+      newUser.permissions = updatePermissions(newUser.permissions, permissions);
 
+      console.log("updated permissions", newUser.permissions);
 
-        const savedUser = await newUser.save() 
+      const savedUser = await newUser.save();
 
-        // Send email notification
-        sendInvitationEmail(newUser.email, newUser.role);
-     
-        console.log(sendInvitationEmail)
+      // Send invitation email with the same dummy password
+      const dummyPasswordSent = await sendInvitationEmail(newUser.email, newUser.role, dummyPassword);
 
-        res.status(200).send(savedUser);
-    
-      } catch (error) {
-        res.status(500).json({ error: error.message });
-      }
-}  
+      res.status(200).json({ message: "User created successfully", user: savedUser});
+  } catch (error) {
+      res.status(500).json({ error: error.message });
+  }
+};
 
 // Function to send an invitation email
-async function sendInvitationEmail(userEmail, role) {
-    try {
-        let subject = '';
+async function sendInvitationEmail(userEmail, role, dummyPassword) {
+  try {
+      let subject = '';
 
-        switch (role) {
-            case 'admin':
-                subject = 'Invitation to Admin Portal';
-                break;
-            case 'super admin':
-                subject = 'Invitation to Super Admin Portal';
-                break;
-            case 'manager':
-                subject = 'Invitation to Manager Portal';
-                break;
-            default:
-                subject = 'Invitation to the Portal';
-        }   
+      switch (role) {
+          case 'admin':
+              subject = 'Invitation to Admin Portal';
+              break;
+          case 'super admin':
+              subject = 'Invitation to Super Admin Portal';
+              break;
+          case 'manager':
+              subject = 'Invitation to Manager Portal';
+              break;
+          default:
+              subject = 'Invitation to the Portal';
+      }
 
-        const transporter = nodemailer.createTransport({
+      const transporter = nodemailer.createTransport({
           service: 'gmail',
           auth: {
-            user: process.env.GMAIL,
-            pass: process.env.PASS,
+              user: process.env.GMAIL,
+              pass: process.env.PASS,
           },
-        });
-        
-        // Define the email options
-        const mailOptions = {
+      });
+
+      // Define the email options
+      const mailOptions = {
           from: process.env.GMAIL,
           to: userEmail,
-          subject: 'Subject of the Email',
-          text: `Hi! You are being invited to the ${role} portal. Click the link to sign up and set your password.`,
-        };
+          subject: subject,
+          text: `Hi! You are being invited to the ${role} portal. Your temporary password is: ${dummyPassword}. Click the link to sign up and set your password.`,
+      };
 
-         // Send the email
-  transporter.sendMail(mailOptions, (error, info) => {
-    if (error) {
-      console.error('Error sending email:', error);
-    } else {
+      // Send the email
+      const info = await transporter.sendMail(mailOptions);
       console.log('Email sent:', info.response);
-    }
-  });
-
-    } catch (error) {
-        console.error('Error sending email:', error);
-        throw error;
-    }
+      
+      return dummyPassword; // Return the dummy password sent in the email
+  } catch (error) {
+      console.error('Error sending email:', error);
+      throw error;
+  }
 }
+
+function generateDummyPassword() {
+  // You can generate a random password according to your requirements
+  // For example, using a library like 'randomatic'
+  // Here's a simple example generating a 6-character alphanumeric password
+  return Math.random().toString(36).slice(-6);
+}
+
 
 /**
  * @typedef {object} userDetails

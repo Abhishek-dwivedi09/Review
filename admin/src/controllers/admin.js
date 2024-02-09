@@ -1,4 +1,5 @@
 import {Admin} from "../models"
+import { User } from "../models" 
 import {Customer} from "../models"
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
@@ -22,44 +23,145 @@ import { PaginationData } from "../common";
 
 
 const login = async (req, res) => {
-    try {
-      const { email, password } = req.body;
-      const user = await Admin.findOne({
-        email
-      });
-      if (!user) {
-        return res.status(400).json({ message: "email and password not match" });
-      }   
+    // try {
+    //   const { email, password } = req.body;
+    //   const user = await Admin.findOne({
+    //     email
+    //   });
+    //   if (!user) {
+    //     return res.status(400).json({ message: "email and password not match" });
+    //   }   
 
-      let passwordMatch = false;
+    //   let passwordMatch = false;
 
-      if (user.password.startsWith('$2b$')) {
-        // Password is hashed with bcrypt
-        passwordMatch = bcrypt.compareSync(password, user.password);
-      } else {
-        // Password is plain text
-        passwordMatch = password === user.password;
-      }
+    //   if (user.password.startsWith('$2b$')) {
+    //     // Password is hashed with bcrypt
+    //     passwordMatch = bcrypt.compareSync(password, user.password);
+    //   } else {
+    //     // Password is plain text
+    //     passwordMatch = password === user.password;
+    //   }
   
-      // const comparePassword = bcrypt.compareSync(password, data.password);
-      if (!passwordMatch) {
-        return res.status(400).json({ message: "email and password not match" });
-      }
-      const token = jwt.sign(
+    //   // const comparePassword = bcrypt.compareSync(password, data.password);
+    //   if (!passwordMatch) {
+    //     return res.status(400).json({ message: "email and password not match" });
+    //   }
+    //   const token = jwt.sign(
+    //     {
+    //       id: user._id,
+    //       email: user.email,
+    //       name: user.name,
+    //     },
+    //     process.env.JWT_SECRET,
+    //     {
+    //       expiresIn: 86400,
+    //     }
+    //   );
+    //   return res.status(200).json({ message: "login successfully", token: token ,data:user});
+    // } catch (error) {
+    //   return ErrorHandler.errorHandler(res, error);
+    // } 
+
+  //   try {
+  //     const { email, password } = req.body;
+      
+  //     // Check if the user is an admin
+  //     const adminUser = await Admin.findOne({ email });
+      
+  //     // Check if the user is a regular user (assuming your regular user model is User)
+  //     const regularUser = await User.findOne({ email });
+
+  //     let passwordMatch = false;
+
+  //     // Check if the provided password matches either the admin's password or the regular user's temporary password
+  //     if (adminUser && adminUser.password.startsWith('$2b$')) {
+  //         // Password is hashed with bcrypt
+  //         passwordMatch = bcrypt.compareSync(password, adminUser.password);
+  //     } else if (regularUser && regularUser.temporaryPassword === password) {
+  //         // Regular user's temporary password matches
+  //         passwordMatch = true;
+  //     }
+
+  //     if (!passwordMatch) {
+  //         return res.status(400).json({ message: "Email and password do not match" });
+  //     }
+
+  //     // If the user is a regular user and logged in with the temporary password, clear it from the user document
+  //     if (regularUser && regularUser.temporaryPassword === password) {
+  //         regularUser.temporaryPassword = null;
+  //         await regularUser.save();
+  //     }
+
+  //     // Here, you can set the user's role based on whether they are an admin or a regular user
+  //     const userRole = adminUser ? 'admin' : 'user';
+
+  //     const token = jwt.sign(
+  //         {
+  //             id: adminUser ? adminUser._id : regularUser._id,
+  //             email: email,
+  //             role: userRole,
+  //         },
+  //         process.env.JWT_SECRET,
+  //         {
+  //             expiresIn: 86400,
+  //         }
+  //     );
+
+  //     return res.status(200).json({ message: "Login successful", token: token, role: userRole });
+  // } catch (error) {
+  //     return ErrorHandler.errorHandler(res, error);
+  // } 
+
+  try {
+    const { email, password } = req.body;
+
+    // Check if the user is an admin
+    const adminUser = await Admin.findOne({ email });
+
+    // Check if the user is a regular user
+    const regularUser = await User.findOne({ email });
+
+    let user;
+    let isAdmin = false;
+
+    if (adminUser) {
+        user = adminUser;
+        isAdmin = true;
+    } else if (regularUser) {
+        user = regularUser;
+    } else {
+        return res.status(400).json({ message: "Email and password do not match" });
+    }
+
+    // Check if the provided password matches either the user's password or the temporary password (for regular users)
+    if (password !== user.password && password !== user.temporaryPassword) {
+        return res.status(400).json({ message: "Email and password do not match" });
+    }
+
+    // Clear temporary password for regular users
+    if (!isAdmin && password === user.temporaryPassword) {
+      //  user.temporaryPassword = null;
+        await user.save();
+    }
+
+    // Generate JWT token
+    const token = jwt.sign(
         {
-          id: user._id,
-          email: user.email,
-          name: user.name,
+            id: user._id,
+            email: user.email,
+            role: isAdmin ? 'admin' : 'user',
         },
         process.env.JWT_SECRET,
         {
-          expiresIn: 86400,
+            expiresIn: 86400,
         }
-      );
-      return res.status(200).json({ message: "login successfully", token: token ,data:user});
-    } catch (error) {
-      return ErrorHandler.errorHandler(res, error);
-    }
+    );
+
+    return res.status(200).json({ message: "Login successful", token: token, role: isAdmin ? 'admin' : 'user' });
+} catch (error) {
+    return ErrorHandler.errorHandler(res, error);
+}
+
   };   
 
 
@@ -162,6 +264,8 @@ const profileUpdate = async (req,res) =>{
 
 
    const userToUpdate = await Admin.findById(_id);
+   const user = await User.findById(_id); 
+   
 
 if(!userToUpdate){
  res.status(200).json({error : "user not found"});
